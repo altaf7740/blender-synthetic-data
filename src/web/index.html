@@ -90,22 +90,26 @@ h2 { margin: 0 0 14px; font-size: 1.35rem; font-weight: 700; font-stretch: 75%; 
 .bins { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .tray.has-bins .bins { margin-bottom: 14px; }
 .bin {
-  display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center;
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: start;
   background: var(--bin); color: var(--ink);
-  border-radius: 8px; padding: 10px 12px 10px 16px;
+  border-radius: 8px; padding: 12px 12px 14px 16px;
   box-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
+.bin .file { font-size: .85rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+.bin .file.bad { color: var(--danger); font-weight: 600; }
+.bin button { grid-row: 1; grid-column: 2; }
+.bin .name { grid-column: 1 / -1; display: grid; gap: 4px; margin-top: 4px; }
+.bin .name span { font-size: .85rem; font-weight: 600; }
 .bin input {
   width: 100%; min-width: 0;
   font: inherit; font-size: 1.3rem; font-weight: 650; font-stretch: 70%;
-  color: var(--ink); background: transparent;
-  border: 0; border-bottom: 1.5px solid var(--rule); border-radius: 0; padding: 2px 0;
+  color: var(--ink); background: var(--panel);
+  border: 1.5px solid var(--rule); border-radius: 6px; padding: 6px 10px;
 }
-.bin input:focus { outline: none; border-bottom-color: var(--brass); }
-.bin input[aria-invalid="true"] { border-bottom-color: var(--danger); }
-.bin .file { grid-column: 1; font-size: .85rem; color: var(--ink-soft); overflow-wrap: anywhere; }
-.bin .file.bad { color: var(--danger); }
-.bin button { grid-row: 1 / span 2; grid-column: 2; }
+.bin input::placeholder { color: var(--ink-soft); font-weight: 400; }
+.bin input:focus { outline: none; border-color: var(--brass); }
+.bin input[aria-invalid="true"] { border-color: var(--danger); }
+.bin .name-error { color: var(--danger); font-size: .85rem; font-weight: 600; }
 
 /* ---- controls ---- */
 .run { display: flex; flex-wrap: wrap; align-items: end; gap: 18px 28px; margin: 22px 0 0; }
@@ -121,6 +125,19 @@ h2 { margin: 0 0 14px; font-size: 1.35rem; font-weight: 700; font-stretch: 75%; 
 }
 .preset[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
 .estimate { margin: 6px 0 0; font-size: .88rem; color: var(--ink-soft); }
+
+fieldset.task { border: 0; margin: 0; padding: 0; min-width: 0; }
+fieldset.task legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { position: relative; }
+.choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.choice span {
+  display: block; padding: 7px 12px; border: 1.5px solid var(--rule); border-radius: 6px;
+  color: var(--ink-soft); font-size: .95rem; line-height: 1.3;
+}
+.choice small { display: block; font-size: .8rem; }
+.choice input:checked + span { color: var(--ink); border-color: var(--ink); }
+.choice input:focus-visible + span { outline: 3px solid var(--brass); outline-offset: 2px; }
 
 .primary {
   font: inherit; font-weight: 700; font-size: 1.05rem;
@@ -212,6 +229,13 @@ pre.log {
         </div>
         <p class="estimate" id="estimate"></p>
       </div>
+      <fieldset class="task">
+        <legend>Labels</legend>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="task" value="segment" checked><span>Outlines<small>for segmentation</small></span></label>
+          <label class="choice"><input type="radio" name="task" value="detect"><span>Boxes<small>for detection</small></span></label>
+        </div>
+      </fieldset>
       <button type="submit" class="primary" id="submit" disabled>Generate dataset</button>
     </div>
     <p class="form-error" id="form-error" role="alert" hidden></p>
@@ -225,7 +249,7 @@ pre.log {
 
 <script>
 const SECONDS_PER_FRAME = 2;   // measured on an M2 Pro GPU at the default settings
-const CLASS_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+const CLASS_NAME = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/;
 const CAD = /\.(step|stp|zip)$/i;
 const STAGES = [["convert", "Convert"], ["generate", "Render"], ["dataset", "Label"], ["package", "Package"]];
 
@@ -249,16 +273,23 @@ function duration(seconds) {
 // ---- tray ----------------------------------------------------------------
 
 function addFiles(files) {
+  const first = parts.length;
   for (const file of files) parts.push({ file, name: classNameFrom(file.name) });
   renderBins();
+  // Ask for the real name straight away: select the suggestion so typing replaces it.
+  const input = $("bins").children[first]?.querySelector("input");
+  if (input) { input.focus(); input.select(); }
 }
+
+const cleanName = (s) => s.trim().replace(/\s+/g, " ");
 
 function problems() {
   const out = [];
   const seen = new Map();
   parts.forEach((p, i) => {
     if (!CAD.test(p.file.name)) out.push([i, "file", `${p.file.name} isn't a STEP file.`]);
-    if (!CLASS_NAME.test(p.name)) out.push([i, "name", "Use letters, digits, - and _, starting with a letter or digit."]);
+    if (!p.name) out.push([i, "name", "Enter a class name."]);
+    else if (!CLASS_NAME.test(p.name)) out.push([i, "name", "Use letters, digits, spaces, - and _, starting with a letter or digit."]);
     else if (seen.has(p.name)) out.push([i, "name", "Another part already has this name."]);
     seen.set(p.name, i);
   });
@@ -275,19 +306,30 @@ function renderBins() {
     const li = document.createElement("li");
     li.className = "bin";
     li.innerHTML = `
-      <input aria-label="Class name for ${esc(p.file.name)}" value="${esc(p.name)}" spellcheck="false"
-             ${nameIssue ? 'aria-invalid="true"' : ""}>
-      <span class="file ${nameIssue || fileIssue ? "bad" : ""}">${esc((fileIssue || nameIssue)?.[2] ?? `${p.file.name}, ${(p.file.size / 1024).toFixed(0)} KB`)}</span>
-      <button type="button" class="quiet">Remove</button>`;
-    li.querySelector("input").addEventListener("change", (e) => { p.name = e.target.value.trim(); renderBins(); });
+      <span class="file ${fileIssue ? "bad" : ""}">${esc(fileIssue?.[2] ?? `${p.file.name}, ${(p.file.size / 1024).toFixed(0)} KB`)}</span>
+      <button type="button" class="quiet">Remove</button>
+      <label class="name">
+        <span>Class name</span>
+        <input value="${esc(p.name)}" placeholder="What is this part? e.g. hex nut M5" spellcheck="false" maxlength="64"
+               aria-describedby="name-error-${i}" ${nameIssue ? 'aria-invalid="true"' : ""}>
+        <span class="name-error" id="name-error-${i}" ${nameIssue ? "" : "hidden"}>${esc(nameIssue?.[2] ?? "")}</span>
+      </label>`;
+    const input = li.querySelector("input");
+    // Typing only updates the name and the Generate button; the row redraws on leaving the field.
+    input.addEventListener("input", () => { p.name = cleanName(input.value); updateSubmit(); });
+    input.addEventListener("change", () => renderBins());
     li.querySelector("button").addEventListener("click", () => { parts.splice(i, 1); renderBins(); });
     bins.appendChild(li);
   });
   $("tray").classList.toggle("has-bins", parts.length > 0);
   $("drop-title").textContent = parts.length ? "Add more parts" : "Drop STEP files here";
   $("drop-hint").textContent = parts.length
-    ? "Each row is one class. Edit a name to change how it's labelled."
+    ? "Each file is one class. Its class name is what the model will call that part."
     : "One file per part: .step, .stp, or a .zip containing one. Or click to choose files.";
+  updateSubmit(issues);
+}
+
+function updateSubmit(issues = problems()) {
   $("submit").disabled = parts.length === 0 || issues.length > 0;
 }
 
@@ -319,6 +361,7 @@ $("form").addEventListener("submit", async (e) => {
   const body = new FormData();
   parts.forEach((p) => { body.append("files", p.file); body.append("classes", p.name); });
   body.append("num_frames", $("frames").value);
+  body.append("task", document.querySelector('input[name="task"]:checked').value);
   $("submit").disabled = true;
   $("submit").textContent = "Uploading…";
   try {
@@ -375,14 +418,16 @@ function jobHtml(job) {
       ${job.has_preview ? `<img src="/api/jobs/${job.id}/preview" alt="Sample images from each class with their labels outlined" loading="lazy">
       <p class="caption">A few images per class, with the labels drawn on exactly as training will read them.</p>` : ""}
       <a class="download" href="/api/jobs/${job.id}/download">Download dataset (.zip)</a>
-      <p class="usage">YOLO format with outline labels. Train segmentation with <code>yolo26n-seg.pt</code> or detection with <code>yolo26n.pt</code>, pointing <code>data=</code> at the unzipped <code>data.yaml</code>.</p>
+      <p class="usage">${job.task === "detect"
+        ? "YOLO format with box labels. Train a detection model such as <code>yolo26n.pt</code>"
+        : "YOLO format with outline labels. Train a segmentation model such as <code>yolo26n-seg.pt</code>"}, pointing <code>data=</code> at the unzipped <code>data.yaml</code>.</p>
     </div>`;
   return `
     <article class="job">
       <div class="job-head">
         <div>
           <h3 class="job-title">${esc(job.classes.join(", "))}</h3>
-          <p class="job-meta">${job.num_frames} images, started ${esc(started)}</p>
+          <p class="job-meta">${job.num_frames} images with ${job.task === "detect" ? "boxes" : "outlines"}, started ${esc(started)}</p>
         </div>
         ${active ? `<button type="button" class="quiet" data-cancel="${job.id}">Cancel</button>` : ""}
       </div>

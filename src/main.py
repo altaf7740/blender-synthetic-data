@@ -1,7 +1,7 @@
 """
 Pipeline entry point. Point it at a folder of CAD parts and it runs the
 whole thing: STEP -> GLB -> synthetic renders (with instance-segmentation
-masks) -> YOLO-seg dataset -> trained model.
+masks) -> YOLO dataset (outlines or boxes) -> trained model.
 
 Input folder contract: one subfolder per class, each containing either a
 .step/.stp file directly, or a single .zip that contains one
@@ -12,8 +12,8 @@ Every stage runs in the uv venv (Blender is the `bpy` package there), each
 in its own process, so a failing stage stops the pipeline with a nonzero exit:
   1. convert_assets.py      - STEP -> GLB (OpenCascade)
   2. generate_dataset.py    - GLB -> rendered frames + masks (Blender)
-  3. build_yolo_dataset.py  - masks -> YOLO-seg labels
-  4. train.py               - YOLO26-seg training
+  3. build_yolo_dataset.py  - masks -> YOLO labels (--task segment|detect)
+  4. train.py               - YOLO26 training, for the dataset's task
 
 Usage (from the repo root):
     uv run python src/main.py --input-dir examples/fasteners --output-dir workspace
@@ -25,6 +25,8 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+
+from synth_pipeline.utils.yolo_dataset import TASKS
 
 HERE = Path(__file__).resolve().parent
 
@@ -48,6 +50,8 @@ def stage_args(name: str, args) -> list:
         if args.textures_dir is not None:
             extra += ["--textures-dir", str(args.textures_dir)]
         return extra
+    if name == "dataset":
+        return ["--task", args.task]
     return []
 
 
@@ -70,6 +74,9 @@ def main():
     parser.add_argument("--from", dest="from_stage", choices=STAGE_NAMES, help="Run this stage and all after it.")
     parser.add_argument("--num-frames", type=int, help="Frames to render (default: pyproject.toml's num_frames).")
     parser.add_argument("--textures-dir", type=Path, help="Folder of photos to mix into ground/backdrop textures.")
+    parser.add_argument(
+        "--task", choices=TASKS, default="segment", help="Label type: segment (outlines, default) or detect (boxes)."
+    )
     args = parser.parse_args()
 
     # Resolve to absolute paths immediately - user-typed relative paths are

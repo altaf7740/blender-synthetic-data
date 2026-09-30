@@ -1,10 +1,11 @@
 """
 Stage 3: convert the rendered frames and instance masks (stage 2) into an
-Ultralytics YOLO-seg dataset. Classes are read from parts_manifest.json
+Ultralytics YOLO dataset, with either outline labels (--task segment) or
+box labels (--task detect). Classes are read from parts_manifest.json
 (written in stage 1) rather than declared again here.
 
 Run from the repo root:
-    uv run python src/build_yolo_dataset.py --output-dir <folder>
+    uv run python src/build_yolo_dataset.py --output-dir <folder> [--task segment|detect]
 """
 
 import argparse
@@ -17,8 +18,20 @@ import numpy as np
 from PIL import Image
 
 from synth_pipeline import config
-from synth_pipeline.utils.seg_labels import frame_to_yolo_seg_lines, load_instance_class_map, load_instance_ids
-from synth_pipeline.utils.yolo_dataset import make_dataset_dirs, num_val, split_for_index, write_data_yaml
+from synth_pipeline.utils.labels import (
+    frame_to_yolo_box_lines,
+    frame_to_yolo_seg_lines,
+    load_instance_class_map,
+    load_instance_ids,
+)
+from synth_pipeline.utils.yolo_dataset import (
+    DATASET_DIR,
+    TASKS,
+    make_dataset_dirs,
+    num_val,
+    split_for_index,
+    write_data_yaml,
+)
 
 
 def camera_effects(img: Image.Image, rng) -> Image.Image:
@@ -48,6 +61,9 @@ def camera_effects(img: Image.Image, rng) -> Image.Image:
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path, help="Same one passed to earlier stages.")
+    parser.add_argument(
+        "--task", choices=TASKS, default="segment", help="Label type: segment (outlines) or detect (boxes)."
+    )
     args = parser.parse_args()
     args.output_dir = args.output_dir.resolve()
     return args
@@ -61,7 +77,8 @@ def main():
     class_to_idx = {name: i for i, name in enumerate(class_names)}
 
     src = args.output_dir / "synthetic_dataset"
-    dst = args.output_dir / "yolo_seg_dataset"
+    dst = args.output_dir / DATASET_DIR
+    to_lines = frame_to_yolo_seg_lines if args.task == "segment" else frame_to_yolo_box_lines
     # Start clean - images/labels left over from a previous, larger run would
     # otherwise stay in train/val alongside this run's.
     shutil.rmtree(dst, ignore_errors=True)
@@ -101,7 +118,7 @@ def main():
         instance_class_map = load_instance_class_map(mapping_path)
         seen_classes.update(instance_class_map.values())
 
-        lines = frame_to_yolo_seg_lines(instance_ids, instance_class_map, class_to_idx, w, h)
+        lines = to_lines(instance_ids, instance_class_map, class_to_idx, w, h)
         for instance_id, name in instance_class_map.items():
             area = int((instance_ids == instance_id).sum())
             if area and name in stats:
@@ -114,11 +131,11 @@ def main():
     if unknown:
         raise ValueError(f"Found class(es) {unknown} not in {manifest_path} - re-run stage 1/2 if parts changed.")
 
-    write_data_yaml(dst, class_names)
+    write_data_yaml(dst, class_names, args.task)
 
     n_val = num_val(total, config.VAL_SPLIT)
     print(f"Done. {total - n_val} train / {n_val} val images written to {dst}")
-    print(f"Classes: {class_names}")
+    print(f"Classes: {class_names}, labels: {'outlines' if args.task == 'segment' else 'boxes'}")
     # A quick health check: a class that is rare or mostly tiny will train poorly.
     print(f"\n{'class':<20}{'instances':>10}{'median px':>11}{'< 20x20':>9}")
     warnings = []

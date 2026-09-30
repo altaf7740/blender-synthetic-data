@@ -1,7 +1,7 @@
 """
 Visual review of a built dataset: for each class, picks N images containing
-it and draws the YOLO-seg labels over them exactly as training will read
-them. The class being reviewed is filled and outlined thickly; other labelled
+it and draws the YOLO labels (outlines or boxes) over them exactly as
+training will read them. The class being reviewed is filled and outlined thickly; other labelled
 parts are outlined thinly.
 
 Writes to <output-dir>/preview/:
@@ -20,6 +20,8 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+
+from synth_pipeline.utils.yolo_dataset import DATASET_DIR
 
 _TILE = 384  # px, contact-sheet tile size
 _PALETTE = [(60, 60, 255), (60, 220, 60), (255, 140, 40), (40, 220, 255), (220, 60, 220), (255, 255, 60)]  # BGR
@@ -43,7 +45,11 @@ def load_labels(dataset_dir: Path) -> list:
             polys = []
             for line in label_path.read_text().splitlines():
                 values = line.split()
-                if len(values) >= 7:  # class + at least 3 points
+                if len(values) == 5:  # detection: class cx cy w h -> the box's 4 corners
+                    cx, cy, w, h = map(float, values[1:])
+                    corners = [(cx - w / 2, cy - h / 2), (cx + w / 2, cy - h / 2), (cx + w / 2, cy + h / 2), (cx - w / 2, cy + h / 2)]
+                    polys.append((int(values[0]), np.array(corners, dtype=np.float32)))
+                elif len(values) >= 7:  # segmentation: class + at least 3 points
                     polys.append((int(values[0]), np.array(values[1:], dtype=np.float32).reshape(-1, 2)))
             samples.append((image_path, polys))
     return samples
@@ -79,7 +85,7 @@ def contact_sheet(images: list, title: str, count: int) -> np.ndarray:
 def main():
     args = parse_args()
     class_names = sorted(json.loads((args.output_dir / "parts_manifest.json").read_text()))
-    dataset_dir = args.output_dir / "yolo_seg_dataset"
+    dataset_dir = args.output_dir / DATASET_DIR
     samples = load_labels(dataset_dir)
     if not samples:
         raise FileNotFoundError(f"No labels in {dataset_dir} - run build_yolo_dataset.py first (stage 3).")

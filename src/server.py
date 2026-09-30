@@ -1,6 +1,7 @@
 """
 Web UI for the pipeline: drop STEP files in the browser, name a class for
-each, and get the YOLO-seg dataset back as a zip.
+each, choose segmentation or detection labels, and get the YOLO dataset
+back as a zip.
 
 Each submitted job gets its own folder under --jobs-dir with the usual input
 layout (<class>/<file>.step) and workspace, and runs stages 1-3 plus the
@@ -34,13 +35,15 @@ import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
+from synth_pipeline.utils.yolo_dataset import DATASET_DIR, TASKS
+
 HERE = Path(__file__).resolve().parent
 WEB_DIR = HERE / "web"
 MAIN = HERE / "main.py"
 PREVIEW = HERE / "preview_dataset.py"
 
 CAD_SUFFIXES = {".step", ".stp", ".zip"}
-CLASS_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+CLASS_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$")
 MAX_FRAMES = 20000
 
 # (stage key, what the UI calls it) - in pipeline order.
@@ -52,6 +55,7 @@ class Job:
     id: str
     classes: list
     num_frames: int
+    task: str
     created: float = field(default_factory=time.time)
     status: str = "queued"  # queued | running | done | failed | cancelled
     stage: str = ""
@@ -138,10 +142,10 @@ def _process(job: Job) -> None:
         _run(job, base + ["--stage", "generate", "--num-frames", str(job.num_frames)], log_path)
         job.frames_done = job.num_frames
         job.stage = "dataset"
-        _run(job, base + ["--stage", "dataset"], log_path)
+        _run(job, base + ["--stage", "dataset", "--task", job.task], log_path)
         job.stage = "package"
         _run(job, [sys.executable, str(PREVIEW), "--output-dir", str(workspace)], log_path)
-        archive = shutil.make_archive(str(job.zip_path.with_suffix("")), "zip", workspace, "yolo_seg_dataset")
+        archive = shutil.make_archive(str(job.zip_path.with_suffix("")), "zip", workspace, DATASET_DIR)
         Path(archive).replace(job.zip_path)
         job.status = "done"
     except InterruptedError:
@@ -167,15 +171,20 @@ async def create_job(
     files: list[UploadFile] = File(...),
     classes: list[str] = Form(...),
     num_frames: int = Form(...),
+    task: str = Form("segment"),
 ):
+    if task not in TASKS:
+        raise HTTPException(400, f"Task must be one of: {', '.join(TASKS)}.")
     if len(files) != len(classes):
         raise HTTPException(400, "Each file needs exactly one class name.")
     if not 1 <= num_frames <= MAX_FRAMES:
         raise HTTPException(400, f"Frames must be between 1 and {MAX_FRAMES}.")
+    classes = [" ".join(name.split()) for name in classes]
     for name in classes:
         if not CLASS_NAME.match(name):
             raise HTTPException(
-                400, f"Class name '{name}' can only use letters, digits, - and _, and must start with a letter or digit."
+                400,
+                f"Class name '{name}' can only use letters, digits, spaces, - and _, and must start with a letter or digit.",
             )
     if len(set(classes)) != len(classes):
         raise HTTPException(400, "Two files have the same class name. Give each part its own name.")
@@ -183,7 +192,7 @@ async def create_job(
         if Path(f.filename or "").suffix.lower() not in CAD_SUFFIXES:
             raise HTTPException(400, f"{f.filename} isn't a STEP file. Use .step, .stp, or a .zip containing one.")
 
-    job = Job(id=uuid.uuid4().hex[:10], classes=list(classes), num_frames=num_frames)
+    job = Job(id=uuid.uuid4().hex[:10], classes=list(classes), num_frames=num_frames, task=task)
     for f, name in zip(files, classes):
         class_dir = job.dir / "input" / name
         class_dir.mkdir(parents=True)

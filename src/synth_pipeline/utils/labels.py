@@ -1,5 +1,6 @@
 """
-Convert stage 2's instance masks into YOLO-seg polygon labels.
+Convert stage 2's instance masks into YOLO labels: outline polygons
+(segmentation) or bounding boxes (detection).
 
 Per frame, generate_dataset.py writes:
   mask_NNNN.png
@@ -8,7 +9,7 @@ Per frame, generate_dataset.py writes:
   mask_NNNN.json
       {"<id>": "<class name>"} for every part instance in the frame.
 Every instance has its own ID even when two share a class, so each still
-becomes its own polygon.
+becomes its own polygon or box.
 """
 
 import json
@@ -90,4 +91,31 @@ def frame_to_yolo_seg_lines(
         norm[:, 1] /= img_h
         coords = " ".join(f"{v:.6f}" for v in norm.flatten())
         lines.append(f"{class_to_idx[class_name]} {coords}")
+    return lines
+
+
+def frame_to_yolo_box_lines(
+    instance_ids: np.ndarray,
+    instance_class_map: dict,
+    class_to_idx: dict,
+    img_w: int,
+    img_h: int,
+    min_area: int = 4,
+) -> list:
+    """Build YOLO detection label lines ("class cx cy w h", normalized) for one frame.
+
+    Boxes are tight around each instance's visible pixels, so a partly hidden
+    part gets a box around what the camera sees - the same region its
+    segmentation outline covers. Arguments as in frame_to_yolo_seg_lines().
+    """
+    lines = []
+    for instance_id, class_name in instance_class_map.items():
+        if class_name not in class_to_idx:
+            continue
+        ys, xs = np.nonzero(instance_ids == instance_id)
+        if len(xs) < min_area:  # fully hidden, or a few stray pixels
+            continue
+        x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+        box = ((x0 + x1) / 2 / img_w, (y0 + y1) / 2 / img_h, (x1 - x0) / img_w, (y1 - y0) / img_h)
+        lines.append(f"{class_to_idx[class_name]} " + " ".join(f"{v:.6f}" for v in box))
     return lines
