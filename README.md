@@ -208,20 +208,23 @@ make ui                     # or: uv run python src/server.py --port 8000
 ```
 
 Then open http://127.0.0.1:8000. Drop one STEP file per part and type each
-one's **class name**: what the model will call that part, e.g. `hex nut M5`
-(letters, digits, spaces, `-` and `_`). It's pre-filled from the file name
-and selected when you drop the file, so you can just type over it. Pick how
-many images to render and the label type (**Outlines** for segmentation,
-**Boxes** for detection or **Crops** for classification), and start. The page shows each stage's progress
-with a time estimate, then a labelled preview and a **Download dataset
-(.zip)** button. The zip holds the `yolo_dataset/` folder; its `data.yaml`
-uses relative paths, so it trains from wherever it's unzipped.
+one's **class name**, e.g. `hex nut M5` (letters, digits, spaces, `-` and
+`_`). Pick the task (**Segmentation**, **Detection** or **Classification**)
+and how many images to render, then **Generate dataset**.
 
-Jobs run one at a time in the order they're started, each in its own folder
-under `jobs/`, through the same stages as the command line. The job list is
-kept in memory, so restarting the server clears it (finished zips stay in
-`jobs/`). The server has no login: it listens on localhost by default, and
-should only be opened to a trusted network (`--host 0.0.0.0`).
+The right panel shows the images as they render, then the finished dataset
+with its labels drawn on (or, for classification, each crop with its class).
+Click an image to see it full size; the arrow keys step through them. The
+grid only builds the tiles in view, so it stays fast with thousands of
+images. **Download** gives the `yolo_dataset/` folder as a zip; its
+`data.yaml` uses relative paths, so it trains from wherever it's unzipped.
+
+The UI keeps **one dataset at a time**. Generating a new one asks first,
+then cancels anything still running and deletes the previous dataset. It's
+kept in `jobs/current/` (with its state in `state.json`), so it's still
+there after the server restarts. The server has no login: it listens on
+localhost by default, and should only be opened to a trusted network
+(`--host 0.0.0.0`).
 
 ### Training on a GPU
 

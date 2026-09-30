@@ -1,15 +1,13 @@
 """
 Web UI for the pipeline: drop STEP files in the browser, name a class for
-each, choose segmentation, detection or classification, and get the YOLO dataset
-back as a zip.
+each, choose segmentation, detection or classification, then browse the
+generated images and download the dataset.
 
-Each submitted job gets its own folder under --jobs-dir with the usual input
-layout (<class>/<file>.step) and workspace, and runs stages 1-3 plus the
-preview through main.py - the same code path as the command line. Jobs run
-one at a time, in submission order: rendering already uses the whole GPU.
-
-Job state lives in memory, so restarting the server forgets the job list
-(finished zips stay on disk under --jobs-dir).
+The UI keeps exactly one dataset. Generating a new one cancels any running
+job and deletes the previous dataset first. It lives in <jobs-dir>/current/
+(the usual input layout, a workspace, the zip and state.json), so it is still
+there after a server restart. Stages 1-3 run through main.py - the same code
+path as the command line.
 
 Run from the repo root:
     uv run python src/server.py [--host 127.0.0.1] [--port 8000] [--jobs-dir jobs]
@@ -18,7 +16,7 @@ It has no authentication - keep it on localhost or a trusted network.
 """
 
 import argparse
-import queue
+import json
 import os
 import re
 import shutil
@@ -27,69 +25,81 @@ import subprocess
 import sys
 import threading
 import time
-import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+import cv2
+import numpy as np
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from synth_pipeline.utils.yolo_dataset import DATASET_DIR, TASKS
 
 HERE = Path(__file__).resolve().parent
 WEB_DIR = HERE / "web"
 MAIN = HERE / "main.py"
-PREVIEW = HERE / "preview_dataset.py"
 
 CAD_SUFFIXES = {".step", ".stp", ".zip"}
 CLASS_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$")
 MAX_FRAMES = 20000
+THUMB_PX = 320
+PALETTE = [(60, 60, 255), (60, 220, 60), (255, 140, 40), (40, 220, 255), (220, 60, 220), (255, 255, 60)]  # BGR, per class
 
-# (stage key, what the UI calls it) - in pipeline order.
-STAGES = [("convert", "Convert"), ("generate", "Render"), ("dataset", "Label"), ("package", "Package")]
+
+def rendered_frames(frames_dir: Path) -> list:
+    """Stage 2's finished frames, in order. A frame's mask_NNNN.json is written
+    last, so an rgb image without one may still be being written."""
+    return [p for p in sorted(frames_dir.glob("rgb_*.png")) if (frames_dir / f"mask_{p.stem[4:]}.json").exists()]
 
 
 @dataclass
 class Job:
-    id: str
     classes: list
     num_frames: int
     task: str
     created: float = field(default_factory=time.time)
-    status: str = "queued"  # queued | running | done | failed | cancelled
+    status: str = "running"  # running | done | failed | cancelled
     stage: str = ""
     frames_done: int = 0
     render_started: float = 0.0
-    finished: float = 0.0
     error: str = ""
 
     def public(self) -> dict:
         data = asdict(self)
         data["eta_seconds"] = self.eta()
-        data["has_preview"] = (self.dir / "workspace" / "preview" / "all.png").exists()
-        data["zip_bytes"] = self.zip_path.stat().st_size if self.status == "done" else None
+        data["zip_bytes"] = zip_path().stat().st_size if self.status == "done" and zip_path().exists() else None
         return data
 
     def eta(self):
-        if self.stage != "generate" or self.frames_done < 2:
+        if self.status != "running" or self.stage != "generate" or self.frames_done < 2:
             return None
         per_frame = (time.time() - self.render_started) / self.frames_done
         return round(per_frame * (self.num_frames - self.frames_done))
 
-    @property
-    def dir(self) -> Path:
-        return JOBS_DIR / self.id
-
-    @property
-    def zip_path(self) -> Path:
-        return self.dir / "dataset.zip"
+    def save(self) -> None:
+        (current_dir() / "state.json").write_text(json.dumps(asdict(self)))
 
 
-JOBS_DIR: Path = Path("jobs")
-jobs: dict = {}
-pending: queue.Queue = queue.Queue()
-current_process: dict = {}  # job id -> running subprocess, for cancelling
+JOBS_DIR: Path = Path("jobs")  # set from --jobs-dir
+
+
+def current_dir() -> Path:
+    return JOBS_DIR / "current"
+
+
+def workspace_dir() -> Path:
+    return current_dir() / "workspace"
+
+
+def zip_path() -> Path:
+    return current_dir() / "dataset.zip"
+
+
+job: Job | None = None
+proc: subprocess.Popen | None = None  # the step running now, for cancelling
+worker: threading.Thread | None = None
+lock = threading.Lock()  # one replace at a time
 
 app = FastAPI(title="Blender Synthetic Data")
 
@@ -101,85 +111,162 @@ def _log_tail(log_path: Path, lines: int = 25) -> str:
     return "\n".join(line for line in cleaned[-lines:] if line.strip())
 
 
-def _kill_tree(proc: subprocess.Popen) -> None:
+def _kill_tree(p: subprocess.Popen) -> None:
     """Stop a step and every process it started (main.py runs each stage as a child)."""
     if sys.platform == "win32":
-        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)], capture_output=True)
     else:
-        os.killpg(proc.pid, signal.SIGTERM)
+        try:
+            os.killpg(p.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
 
 
-def _run(job: Job, cmd: list, log_path: Path) -> None:
+def _run(j: Job, cmd: list, log_path: Path) -> None:
     """Run one pipeline step, tracking render progress. Raises on failure or cancel."""
+    global proc
     with open(log_path, "ab") as log:
         # Own process group, so cancelling also stops the stage main.py started.
         group = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if sys.platform == "win32" else {"start_new_session": True}
         proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, **group)
-        current_process[job.id] = proc
-        frames_dir = job.dir / "workspace" / "synthetic_dataset"
+        frames_dir = workspace_dir() / "synthetic_dataset"
         try:
             while proc.poll() is None:
-                if job.stage == "generate" and frames_dir.is_dir():
-                    job.frames_done = sum(1 for _ in frames_dir.glob("mask_*.json"))
+                if j.stage == "generate" and frames_dir.is_dir():
+                    j.frames_done = len(rendered_frames(frames_dir))
+                    j.save()
                 time.sleep(1.0)
         finally:
-            current_process.pop(job.id, None)
-    if job.status == "cancelled":
+            returncode, proc = proc.returncode, None
+    if j.status == "cancelled":
         raise InterruptedError
-    if proc.returncode != 0:
-        raise RuntimeError(_log_tail(log_path) or f"exit code {proc.returncode}")
+    if returncode != 0:
+        raise RuntimeError(_log_tail(log_path) or f"exit code {returncode}")
 
 
-def _process(job: Job) -> None:
-    workspace = job.dir / "workspace"
-    log_path = job.dir / "log.txt"
-    base = [sys.executable, str(MAIN), "--input-dir", str(job.dir / "input"), "--output-dir", str(workspace)]
-    job.status = "running"
+def _process(j: Job) -> None:
+    log_path = current_dir() / "log.txt"
+    base = [sys.executable, str(MAIN), "--input-dir", str(current_dir() / "input"), "--output-dir", str(workspace_dir())]
     try:
-        job.stage = "convert"
-        _run(job, base + ["--stage", "convert"], log_path)
-        job.stage = "generate"
-        job.render_started = time.time()
-        _run(job, base + ["--stage", "generate", "--num-frames", str(job.num_frames)], log_path)
-        job.frames_done = job.num_frames
-        job.stage = "dataset"
-        _run(job, base + ["--stage", "dataset", "--task", job.task], log_path)
-        job.stage = "package"
-        _run(job, [sys.executable, str(PREVIEW), "--output-dir", str(workspace)], log_path)
-        archive = shutil.make_archive(str(job.zip_path.with_suffix("")), "zip", workspace, DATASET_DIR)
-        Path(archive).replace(job.zip_path)
-        job.status = "done"
+        for stage, extra in (
+            ("convert", []),
+            ("generate", ["--num-frames", str(j.num_frames)]),
+            ("dataset", ["--task", j.task]),
+        ):
+            j.stage = stage
+            if stage == "generate":
+                j.render_started = time.time()
+            j.save()
+            _run(j, base + ["--stage", stage] + extra, log_path)
+        j.frames_done = j.num_frames
+        j.stage = "package"
+        j.save()
+        archive = shutil.make_archive(str(zip_path().with_suffix("")), "zip", workspace_dir(), DATASET_DIR)
+        Path(archive).replace(zip_path())
+        j.status = "done"
     except InterruptedError:
         pass  # status already "cancelled"
     except Exception as e:
-        job.status = "failed"
-        job.error = str(e)
-    job.finished = time.time()
+        j.status = "failed"
+        j.error = str(e)
+    j.save()
 
 
-def _worker() -> None:
-    while True:
-        job = pending.get()
-        if job.status == "queued":  # skip jobs cancelled while waiting
-            _process(job)
+# ---- images --------------------------------------------------------------------
+#
+# The panel shows the renders while stage 2 runs ("renders"), then the finished
+# dataset's images with their labels drawn on, or its crops ("dataset"). Images
+# are addressed by position in a sorted listing, never by a client-given path.
+
+_listing: dict = {}
+
+
+def _images(kind: str) -> list:
+    """[(image path, label path or class name or None), ...] for `kind`."""
+    key = (kind, job.created, job.status, job.frames_done) if job else None
+    if _listing.get("key") != key:
+        items = []
+        if job and kind == "renders":
+            items = [(p, None) for p in rendered_frames(workspace_dir() / "synthetic_dataset")]
+        elif job and kind == "dataset" and job.status == "done":
+            root = workspace_dir() / DATASET_DIR
+            if job.task == "classify":
+                items = [(p, p.parent.name) for p in sorted(root.glob("*/*/*.jpg"), key=lambda p: (p.name, str(p)))]
+            else:
+                images = sorted(root.glob("images/*/*.png"), key=lambda p: p.name)
+                items = [(p, root / "labels" / p.parent.name / f"{p.stem}.txt") for p in images]
+        _listing.update(key=key, items=items)
+    return _listing["items"]
+
+
+def _draw_labels(img: np.ndarray, label_path: Path) -> np.ndarray:
+    """Outlines or boxes, filled lightly in each class's color."""
+    if not label_path.exists():
+        return img
+    h, w = img.shape[:2]
+    shapes = []
+    for line in label_path.read_text().splitlines():
+        values = line.split()
+        if len(values) == 5:  # class cx cy w h
+            cx, cy, bw, bh = map(float, values[1:])
+            pts = [(cx - bw / 2, cy - bh / 2), (cx + bw / 2, cy - bh / 2), (cx + bw / 2, cy + bh / 2), (cx - bw / 2, cy + bh / 2)]
+        elif len(values) >= 7:  # class x1 y1 x2 y2 ...
+            pts = np.array(values[1:], dtype=np.float32).reshape(-1, 2)
+        else:
+            continue
+        shapes.append((int(values[0]), (np.array(pts, dtype=np.float32) * [w, h]).astype(np.int32)))
+    overlay = img.copy()
+    for cls, pts in shapes:
+        cv2.fillPoly(overlay, [pts], PALETTE[cls % len(PALETTE)])
+    img = cv2.addWeighted(overlay, 0.3, img, 0.7, 0)
+    for cls, pts in shapes:
+        cv2.polylines(img, [pts], True, PALETTE[cls % len(PALETTE)], max(1, w // 320), cv2.LINE_AA)
+    return img
+
+
+def _image_response(kind: str, index: int, thumb: bool) -> Response:
+    if kind not in ("renders", "dataset"):
+        raise HTTPException(404, "No such image.")
+    items = _images(kind)
+    if not 0 <= index < len(items):
+        raise HTTPException(404, "No such image.")
+    cached = current_dir() / "thumbs" / f"{kind}-{index}.jpg"
+    if thumb and cached.exists():
+        return FileResponse(cached, media_type="image/jpeg")
+    path, label = items[index]
+    img = cv2.imread(str(path))
+    if img is None:
+        raise HTTPException(404, "That image isn't readable yet.")
+    if isinstance(label, Path):
+        img = _draw_labels(img, label)
+    if thumb:
+        scale = THUMB_PX / max(img.shape[:2])
+        if scale < 1:
+            img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 82 if thumb else 92])
+    if thumb:
+        cached.parent.mkdir(exist_ok=True)
+        cached.write_bytes(buf.tobytes())
+    return Response(buf.tobytes(), media_type="image/jpeg")
 
 
 # ---- API ---------------------------------------------------------------------
 
 
-@app.post("/api/jobs")
-async def create_job(
+@app.post("/api/dataset")
+async def create_dataset(
     files: list[UploadFile] = File(...),
     classes: list[str] = Form(...),
     num_frames: int = Form(...),
     task: str = Form("segment"),
 ):
+    global job, worker
     if task not in TASKS:
         raise HTTPException(400, f"Task must be one of: {', '.join(TASKS)}.")
     if len(files) != len(classes):
         raise HTTPException(400, "Each file needs exactly one class name.")
     if not 1 <= num_frames <= MAX_FRAMES:
-        raise HTTPException(400, f"Frames must be between 1 and {MAX_FRAMES}.")
+        raise HTTPException(400, f"Images must be between 1 and {MAX_FRAMES}.")
     classes = [" ".join(name.split()) for name in classes]
     for name in classes:
         if not CLASS_NAME.match(name):
@@ -193,63 +280,72 @@ async def create_job(
         if Path(f.filename or "").suffix.lower() not in CAD_SUFFIXES:
             raise HTTPException(400, f"{f.filename} isn't a STEP file. Use .step, .stp, or a .zip containing one.")
 
-    job = Job(id=uuid.uuid4().hex[:10], classes=list(classes), num_frames=num_frames, task=task)
-    for f, name in zip(files, classes):
-        class_dir = job.dir / "input" / name
-        class_dir.mkdir(parents=True)
-        # Keep only the extension from the client's file name.
-        with open(class_dir / f"{name}{Path(f.filename).suffix.lower()}", "wb") as out:
-            shutil.copyfileobj(f.file, out)
-    jobs[job.id] = job
-    pending.put(job)
+    with lock:
+        # Replace: stop the running job, wait for it to wind down, delete the old dataset.
+        if job and job.status == "running":
+            job.status = "cancelled"
+            if proc:
+                _kill_tree(proc)
+        if worker:
+            worker.join(timeout=30)
+            if worker.is_alive():
+                raise HTTPException(409, "The previous dataset is still stopping. Try again in a moment.")
+        shutil.rmtree(current_dir(), ignore_errors=True)
+
+        new = Job(classes=list(classes), num_frames=num_frames, task=task)
+        for f, name in zip(files, classes):
+            class_dir = current_dir() / "input" / name
+            class_dir.mkdir(parents=True)
+            # Keep only the extension from the client's file name.
+            with open(class_dir / f"{name}{Path(f.filename).suffix.lower()}", "wb") as out:
+                shutil.copyfileobj(f.file, out)
+        new.save()
+        job = new
+        worker = threading.Thread(target=_process, args=(new,), daemon=True)
+        worker.start()
     return job.public()
 
 
-@app.get("/api/jobs")
-def list_jobs():
-    return [job.public() for job in sorted(jobs.values(), key=lambda j: j.created, reverse=True)]
+@app.get("/api/dataset")
+def get_dataset():
+    return job.public() if job else {"status": "none"}
 
 
-def _get(job_id: str) -> Job:
-    if job_id not in jobs:
-        raise HTTPException(404, "No job with that ID. It may be from before the server restarted.")
-    return jobs[job_id]
-
-
-@app.get("/api/jobs/{job_id}")
-def get_job(job_id: str):
-    return _get(job_id).public()
-
-
-@app.post("/api/jobs/{job_id}/cancel")
-def cancel_job(job_id: str):
-    job = _get(job_id)
-    if job.status in ("queued", "running"):
+@app.post("/api/dataset/cancel")
+def cancel_dataset():
+    if job and job.status == "running":
         job.status = "cancelled"
-        if proc := current_process.get(job_id):
+        if proc:
             _kill_tree(proc)
-    return job.public()
+    return get_dataset()
 
 
-@app.get("/api/jobs/{job_id}/preview")
-def job_preview(job_id: str):
-    path = _get(job_id).dir / "workspace" / "preview" / "all.png"
-    if not path.exists():
-        raise HTTPException(404, "The preview is made after labelling finishes.")
-    return FileResponse(path, media_type="image/png")
+@app.get("/api/dataset/images")
+def list_images():
+    """What the panel shows: the dataset once finished, else the renders so far."""
+    if not job:
+        return {"kind": "renders", "count": 0, "labels": None}
+    kind = "dataset" if job.status == "done" else "renders"
+    items = _images(kind)
+    labels = [label for _, label in items] if job.task == "classify" and kind == "dataset" else None
+    return {"kind": kind, "count": len(items), "labels": labels}
 
 
-@app.get("/api/jobs/{job_id}/download")
-def download(job_id: str):
-    job = _get(job_id)
-    if job.status != "done":
-        raise HTTPException(409, "The dataset isn't ready yet.")
-    return FileResponse(job.zip_path, media_type="application/zip", filename=f"dataset-{job.id}.zip")
+@app.get("/api/dataset/thumb/{kind}/{index}")
+def thumbnail(kind: str, index: int):
+    return _image_response(kind, index, thumb=True)
 
 
-@app.get("/api/stages")
-def stages():
-    return STAGES
+@app.get("/api/dataset/image/{kind}/{index}")
+def full_image(kind: str, index: int):
+    return _image_response(kind, index, thumb=False)
+
+
+@app.get("/api/dataset/download")
+def download():
+    if not job or job.status != "done" or not zip_path().exists():
+        raise HTTPException(404, "There's no finished dataset to download.")
+    return FileResponse(zip_path(), media_type="application/zip", filename="dataset.zip")
 
 
 @app.get("/")
@@ -258,16 +354,23 @@ def index():
 
 
 def main():
-    global JOBS_DIR
+    global JOBS_DIR, job
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--jobs-dir", type=Path, default=Path("jobs"), help="Where uploads and results are kept.")
+    parser.add_argument("--jobs-dir", type=Path, default=Path("jobs"), help="Where the current dataset is kept.")
     args = parser.parse_args()
     JOBS_DIR = args.jobs_dir.resolve()
     JOBS_DIR.mkdir(parents=True, exist_ok=True)
 
-    threading.Thread(target=_worker, daemon=True).start()
+    # Pick the current dataset back up; one that was mid-way when the server stopped can't resume.
+    state = current_dir() / "state.json"
+    if state.exists():
+        job = Job(**json.loads(state.read_text()))
+        if job.status == "running":
+            job.status, job.error = "failed", "The server stopped before this dataset finished."
+            job.save()
+
     print(f"Open http://{args.host}:{args.port} in your browser.")
     # Jobs run in their own process group (so Cancel can stop them), which
     # also means they'd outlive the server - stop them with it. Ctrl+C lands
@@ -277,7 +380,7 @@ def main():
     try:
         uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     finally:
-        for proc in list(current_process.values()):
+        if proc:
             _kill_tree(proc)
 
 

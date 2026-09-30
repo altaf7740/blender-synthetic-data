@@ -245,37 +245,13 @@ button, input { font: inherit; letter-spacing: inherit; color: inherit; }
 .summary.blocked { color: var(--md-on-surface-variant); }
 .go .btn { width: 100%; height: 48px; border-radius: 24px; font-size: 16px; }
 
-/* ---- gallery ---- */
-.gallery-list { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 2px 8px 8px 0; container-type: inline-size; }
-.empty {
-  margin: auto; max-width: 360px; text-align: center; padding: 24px;
-  display: grid; justify-items: center; gap: 8px; color: var(--md-on-surface-variant);
-}
-.empty .badge-icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 8px; border-radius: 20px; background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); }
-.empty p { margin: 0; }
-.empty .title-m { color: var(--md-on-surface); }
-
-.job {
-  flex: none; min-width: 0; padding: 16px; border-radius: 16px;
-  background: var(--md-surface-container-lowest); box-shadow: var(--md-elev-1);
-}
-.job.has-result {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); column-gap: 20px; align-items: start;
-  grid-template-areas: "head shot" "progress shot" "actions shot"; grid-template-rows: auto auto 1fr;
-}
-.job [data-piece="head"] { grid-area: head; }
-.job [data-piece="progress"] { grid-area: progress; }
-.job [data-piece="actions"] { grid-area: actions; }
-.job [data-piece="shot"] { grid-area: shot; }
-@container (max-width: 640px) {
-  .job.has-result { display: block; }
-  .job [data-piece="shot"] { margin-top: 12px; }
-}
-.job-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
-.job-head > div { min-width: 0; }
-.job-title { margin: 0; overflow-wrap: anywhere; }
-.job-meta { margin: 2px 0 0; }
-.job-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+/* ---- dataset panel ---- */
+.gallery-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-right: 8px; margin-bottom: 12px; min-height: 40px; }
+.gallery-head > div:first-child { min-width: 0; }
+.gallery-head h2 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gallery-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.gallery-meta:empty { display: none; }
+.gallery-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .tag {
   display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 6px;
   font-size: 12px; font-weight: 500; letter-spacing: .5px;
@@ -285,9 +261,11 @@ button, input { font: inherit; letter-spacing: inherit; color: inherit; }
 .tag.ok { background: var(--md-primary-container); color: var(--md-on-primary-container); }
 .tag.busy { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
 .tag.bad { background: var(--md-error-container); color: var(--md-on-error-container); }
+.run { padding-right: 8px; margin-bottom: 12px; }
+.run:empty { display: none; }
 
 /* Stepper: one step per pipeline stage */
-.steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 0; margin: 14px 0 10px; }
+.steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 0; margin: 0 0 10px; }
 .steps li { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 500; letter-spacing: .5px; color: var(--md-on-surface-variant); }
 .steps li span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .steps .dot { width: 20px; height: 20px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--md-outline-variant); }
@@ -300,31 +278,50 @@ button, input { font: inherit; letter-spacing: inherit; color: inherit; }
 .steps li.failed .dot { border: 0; background: var(--md-error); color: var(--md-on-error); }
 
 /* Linear progress (M3): active track, gap, inactive track */
-.progress { position: relative; height: 4px; margin: 0 0 8px; border-radius: 2px; overflow: hidden; }
+.progress { position: relative; height: 4px; margin: 0 0 6px; border-radius: 2px; overflow: hidden; }
 .progress::before { content: ""; position: absolute; inset: 0; left: calc(var(--p) + 4px); background: var(--md-secondary-container); border-radius: 2px; }
 .progress::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: var(--p); background: var(--md-primary); border-radius: 2px; transition: width .4s var(--md-ease); }
 .progress.indeterminate::before { left: 0; }
 .progress.indeterminate::after { width: 40%; animation: indeterminate 1.6s var(--md-ease) infinite; }
 @keyframes indeterminate { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
 .status { margin: 0; }
-.status.bad { color: var(--md-error); }
 pre.log {
-  margin: 8px 0 0; padding: 8px 12px; max-height: 140px; overflow: auto; border-radius: 8px;
+  margin: 0; padding: 8px 12px; max-height: 140px; overflow: auto; border-radius: 8px;
   background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
   font: 12px/16px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap;
 }
-[data-piece="actions"] { margin-top: 16px; display: grid; gap: 12px; justify-items: start; }
-.usage { margin: 0; }
-.usage code { font: 12px/16px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--md-surface-container-high); padding: 1px 4px; border-radius: 4px; }
-.shot { position: relative; display: block; border-radius: 12px; overflow: hidden; background: var(--md-surface-container-high); }
-.shot.none { display: grid; place-items: center; min-height: 120px; }
-.shot img { display: block; width: 100%; height: auto; max-height: 280px; object-fit: contain; object-position: left top; }
-.shot .open {
-  position: absolute; right: 8px; bottom: 8px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px;
-  background: var(--md-surface-container-lowest); color: var(--md-on-surface); box-shadow: var(--md-elev-1);
-  opacity: 0; transition: opacity .2s var(--md-ease);
+
+/* Image grid: virtualized - only the tiles in view exist; the spacer gives the full scroll height. */
+.grid-wrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
+.grid { position: relative; flex: 1; min-height: 0; padding-right: 8px; }
+.grid-spacer { width: 1px; }
+.tile {
+  position: absolute; top: 0; left: 0; padding: 0; border: 0; border-radius: 12px; cursor: zoom-in;
+  background: var(--md-surface-container-high); color: var(--md-on-surface);
 }
-.shot:hover .open, .shot:focus-visible .open { opacity: 1; }
+.tile img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.tile .cap {
+  position: absolute; left: 6px; bottom: 6px; max-width: calc(100% - 12px); height: 22px; padding: 0 8px; border-radius: 6px;
+  display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-size: 11px; font-weight: 500; background: var(--md-surface-container-lowest); color: var(--md-on-surface);
+}
+.empty {
+  position: absolute; inset: 0; margin: auto; height: max-content; text-align: center;
+  display: grid; justify-items: center; gap: 8px; color: var(--md-on-surface-variant); pointer-events: none;
+}
+.empty .badge-icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 8px; border-radius: 20px; background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); }
+.empty p { margin: 0; color: var(--md-on-surface); }
+
+/* Dialogs (M3): the image viewer and the replace confirmation */
+dialog { border: 0; padding: 0; background: transparent; color: var(--md-on-surface); max-width: none; max-height: none; }
+dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.viewer-body { display: grid; gap: 8px; padding: 12px; border-radius: 28px; background: var(--md-surface-container-high); }
+.viewer img { display: block; max-width: min(88vw, 1000px); max-height: calc(92vh - 88px); margin: 0 auto; border-radius: 16px; background: var(--md-surface-container-highest); }
+.viewer-bar { display: flex; align-items: center; gap: 4px; }
+.viewer-bar .count { flex: 1; text-align: center; }
+.confirm-body { width: min(340px, 90vw); padding: 24px; border-radius: 28px; background: var(--md-surface-container-high); }
+.confirm-body h3 { margin: 0 0 16px; font-size: 24px; line-height: 32px; font-weight: 400; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
 
 /* Snackbar */
 .snackbar {
@@ -361,7 +358,7 @@ pre.log {
   .nav-item .indicator { position: relative; display: grid; place-items: center; width: 64px; height: 32px; border-radius: 16px; transition: background-color .2s var(--md-ease); overflow: visible; }
   .nav-item[aria-selected="true"] { color: var(--md-on-surface); }
   .nav-item[aria-selected="true"] .indicator { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
-  .nav-badge { position: absolute; top: -2px; left: 38px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--md-error); color: var(--md-on-error); font-size: 11px; line-height: 16px; font-weight: 500; }
+  .nav-badge { position: absolute; top: 4px; left: 40px; width: 8px; height: 8px; border-radius: 4px; background: var(--md-error); }
   .snackbar { bottom: 96px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -382,6 +379,8 @@ pre.log {
   <symbol id="i-open" viewBox="0 0 24 24"><path d="M5 21q-.83 0-1.41-.59Q3 19.83 3 19V5q0-.83.59-1.41Q4.17 3 5 3h7v2H5v14h14v-7h2v7q0 .83-.59 1.41Q19.83 21 19 21Zm4.7-5.3-1.4-1.4L17.6 5H14V3h7v7h-2V6.4Z"/></symbol>
   <symbol id="i-error" viewBox="0 0 24 24"><path d="M11 17h2v-6h-2Zm1-8q.43 0 .71-.29Q13 8.43 13 8t-.29-.71Q12.43 7 12 7t-.71.29Q11 7.57 11 8t.29.71Q11.57 9 12 9Zm0 13q-2.08 0-3.9-.79-1.82-.78-3.17-2.13-1.35-1.35-2.14-3.18Q2 14.08 2 12t.79-3.9q.79-1.82 2.14-3.17Q6.28 3.58 8.1 2.79 9.92 2 12 2t3.9.79q1.82.79 3.17 2.14 1.35 1.35 2.14 3.17Q22 9.92 22 12t-.79 3.9q-.79 1.83-2.14 3.18-1.35 1.35-3.17 2.13Q14.08 22 12 22Z"/></symbol>
   <symbol id="i-schedule" viewBox="0 0 24 24"><path d="m15.3 16.7 1.4-1.4-3.7-3.7V7h-2v5.4ZM12 22q-2.08 0-3.9-.79-1.82-.78-3.17-2.13-1.35-1.35-2.14-3.18Q2 14.08 2 12t.79-3.9q.79-1.82 2.14-3.17Q6.28 3.58 8.1 2.79 9.92 2 12 2t3.9.79q1.82.79 3.17 2.14 1.35 1.35 2.14 3.17Q22 9.92 22 12t-.79 3.9q-.79 1.83-2.14 3.18-1.35 1.35-3.17 2.13Q14.08 22 12 22Zm0-2q3.33 0 5.67-2.33Q20 15.33 20 12t-2.33-5.67Q15.33 4 12 4T6.33 6.33Q4 8.67 4 12t2.33 5.67Q8.67 20 12 20Z"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></symbol>
   <symbol id="i-add" viewBox="0 0 24 24"><path d="M11 19v-6H5v-2h6V5h2v6h6v2h-6v6Z"/></symbol>
   <symbol id="i-gallery" viewBox="0 0 24 24"><path d="M9 14h10l-3.45-4.5-2.3 3-1.55-2Zm-1 4q-.83 0-1.41-.59Q6 16.83 6 16V4q0-.83.59-1.41Q7.17 2 8 2h12q.83 0 1.41.59Q22 3.17 22 4v12q0 .83-.59 1.41Q20.83 18 20 18Zm0-2h12V4H8v12Zm-4 6q-.83 0-1.41-.59Q2 20.83 2 20V6h2v14h14v2ZM8 4v12Z"/></symbol>
   <symbol id="i-dark" viewBox="0 0 24 24"><path d="M12 21q-3.75 0-6.37-2.63Q3 15.75 3 12t2.63-6.37Q8.25 3 12 3q.35 0 .69.03.33.02.66.07-1.03.73-1.64 1.9Q11.1 6.18 11.1 7.5q0 2.25 1.58 3.82Q14.25 12.9 16.5 12.9q1.35 0 2.51-.61 1.16-.61 1.89-1.64.05.33.07.66.03.34.03.69 0 3.75-2.63 6.37Q15.75 21 12 21Z"/></symbol>
@@ -436,12 +435,18 @@ pre.log {
     </div>
   </form>
 
-  <section class="pane gallery" id="gallery" aria-labelledby="jobs-title">
-    <div class="pane-head">
-      <h2 class="title-m" id="jobs-title">Datasets</h2>
+  <section class="pane gallery" id="gallery" aria-labelledby="gallery-title">
+    <div class="gallery-head">
+      <div>
+        <h2 class="title-m" id="gallery-title">Dataset</h2>
+        <div class="gallery-meta" id="gallery-meta"></div>
+      </div>
+      <div class="gallery-actions" id="gallery-actions"></div>
     </div>
-    <div class="gallery-list scroll" id="jobs" tabindex="0" aria-label="Datasets">
-      <div class="empty">
+    <div class="run" id="run"></div>
+    <div class="grid-wrap">
+      <div class="grid scroll" id="grid" tabindex="0" aria-label="Generated images"><div class="grid-spacer" id="grid-spacer"></div></div>
+      <div class="empty" id="empty">
         <span class="badge-icon"><svg class="i i-24"><use href="#i-gallery"/></svg></span>
         <p class="title-m">Nothing to preview</p>
       </div>
@@ -455,10 +460,33 @@ pre.log {
     </button>
     <button type="button" class="nav-item" role="tab" aria-selected="false" aria-controls="gallery" data-view="gallery">
       <span class="indicator state"><svg class="i i-24"><use href="#i-gallery"/></svg><span class="nav-badge" id="nav-badge" hidden></span></span>
-      <span class="label-m">Datasets</span>
+      <span class="label-m">Dataset</span>
     </button>
   </nav>
 </div>
+
+<dialog class="viewer" id="viewer" aria-label="Image viewer">
+  <div class="viewer-body">
+    <img id="viewer-img" alt="">
+    <div class="viewer-bar">
+      <button type="button" class="icon-btn state" id="viewer-prev" aria-label="Previous image"><svg class="i"><use href="#i-prev"/></svg></button>
+      <span class="count label-l" id="viewer-count"></span>
+      <button type="button" class="icon-btn state" id="viewer-next" aria-label="Next image"><svg class="i"><use href="#i-next"/></svg></button>
+      <button type="button" class="icon-btn state" id="viewer-close" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="confirm" aria-labelledby="confirm-title">
+  <form method="dialog" class="confirm-body">
+    <h3 id="confirm-title">Replace the current dataset?</h3>
+    <p class="muted" style="margin:0">It will be deleted.</p>
+    <div class="confirm-actions">
+      <button type="submit" value="cancel" class="btn btn-text state">Cancel</button>
+      <button type="submit" value="replace" class="btn btn-text state">Replace</button>
+    </div>
+  </form>
+</dialog>
 
 <div class="snackbar" id="snackbar" role="status" aria-live="polite">
   <p id="snackbar-text"></p>
@@ -476,6 +504,8 @@ const TASK_TEXT = {
   detect: { name: "Detection", caption: "Sample images per class with their box labels drawn on" },
   classify: { name: "Classification", caption: "Sample crops per class" },
 };
+// Datasets from before the task option have no task; they were all segmentation.
+const taskOf = (job) => TASK_TEXT[job.task] ?? TASK_TEXT.segment;
 const STAGES = [["convert", "Convert"], ["generate", "Render"], ["dataset", "Label"], ["package", "Package"]];
 
 const $ = (id) => document.getElementById(id);
@@ -672,10 +702,11 @@ if (savedTask) savedTask.checked = true;
 if (remembered.get("frames")) $("frames").value = remembered.get("frames");
 updateSummary();
 
-// ---- submit ----------------------------------------------------------------
+// ---- generate (replaces the current dataset) ----------------------------------------
 
-$("form").addEventListener("submit", async (e) => {
-  e.preventDefault();
+let current = { status: "none" };   // the dataset, as the server reports it
+
+async function generate() {
   const body = new FormData();
   parts.forEach((p) => { body.append("files", p.file); body.append("classes", p.name); });
   body.append("num_frames", String(frameCount()));
@@ -683,151 +714,225 @@ $("form").addEventListener("submit", async (e) => {
   $("submit").disabled = true;
   $("submit-label").textContent = "Uploading…";
   try {
-    const res = await fetch("/api/jobs", { method: "POST", body });
+    const res = await fetch("/api/dataset", { method: "POST", body });
     if (!res.ok) throw new Error((await res.json()).detail ?? `Upload failed (${res.status}).`);
     parts = [];
     renderBins();
-    await refresh();
     showView("gallery");
-    $("jobs").scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
-    snackbar("Dataset started");
+    await refresh();
   } catch (ex) {
     snackbar(ex.message === "Failed to fetch" ? "Can't reach the server" : ex.message);
     renderBins();
   } finally {
     $("submit-label").textContent = "Generate dataset";
   }
+}
+
+// Generating deletes the dataset that's there, so ask first.
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (current.status === "none") generate();
+  else { $("confirm").returnValue = ""; $("confirm").showModal(); }
 });
+$("confirm").addEventListener("close", () => { if ($("confirm").returnValue === "replace") generate(); });
 
-// ---- datasets ----------------------------------------------------------------
+// ---- dataset header --------------------------------------------------------------
 
-function stepsHtml(job) {
-  const current = STAGES.findIndex(([key]) => key === job.stage);
+// Pieces are only rewritten when they change, so polling doesn't steal focus (e.g. from Cancel).
+function setHtml(el, html) {
+  if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; }
+}
+
+function stepsHtml(d) {
+  const at = STAGES.findIndex(([key]) => key === d.stage);
   return STAGES.map(([, label], i) => {
     let cls = "", mark = "";
-    if (job.status === "done" || i < current) { cls = "done"; mark = icon("check"); }
-    else if (i === current && job.status === "failed") { cls = "failed"; mark = icon("close"); }
-    else if (i === current && job.status === "running") cls = "active";
+    if (d.status === "done" || i < at) { cls = "done"; mark = icon("check"); }
+    else if (i === at && d.status === "failed") { cls = "failed"; mark = icon("close"); }
+    else if (i === at && d.status === "running") cls = "active";
     return `<li class="${cls}"><span class="dot">${mark}</span><span>${label}</span></li>`;
   }).join("");
 }
 
-function statusTag(job) {
-  switch (job.status) {
-    case "queued": return `<span class="tag">${icon("schedule")}Queued</span>`;
-    case "running": return `<span class="tag busy">Running</span>`;
-    case "done": return `<span class="tag ok">${icon("check")}Ready</span>`;
-    case "failed": return `<span class="tag bad">${icon("error")}Failed</span>`;
-    default: return `<span class="tag">Cancelled</span>`;
-  }
+function runHtml(d) {
+  if (d.status === "failed") return `<ol class="steps" aria-label="Progress">${stepsHtml(d)}</ol><pre class="log">${esc(d.error)}</pre>`;
+  if (d.status !== "running") return "";
+  const steps = `<ol class="steps" aria-label="Progress">${stepsHtml(d)}</ol>`;
+  if (d.stage !== "generate") return `${steps}<div class="progress indeterminate" role="progressbar" aria-label="Working"></div>`;
+  const pct = Math.round(100 * d.frames_done / d.num_frames);
+  const eta = d.eta_seconds == null ? "" : `, ${d.eta_seconds < 60 ? "<1 min" : duration(d.eta_seconds)} left`;
+  return `${steps}<div class="progress" style="--p:${pct}%" role="progressbar" aria-label="Rendering" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"></div>
+    <p class="status body-s muted">${d.frames_done} / ${d.num_frames}${eta}</p>`;
 }
 
-function progressHtml(job) {
-  const steps = `<ol class="steps" aria-label="Progress">${stepsHtml(job)}</ol>`;
-  switch (job.status) {
-    case "done": case "cancelled": return "";
-    case "queued": return steps;
-    case "failed": return `${steps}<pre class="log">${esc(job.error)}</pre>`;
-  }
-  if (job.stage === "generate") {
-    const pct = Math.round(100 * job.frames_done / job.num_frames);
-    const eta = job.eta_seconds == null ? "" : `, ${job.eta_seconds < 60 ? "<1\u00a0min" : duration(job.eta_seconds)} left`;
-    return `${steps}<div class="progress" style="--p:${pct}%" role="progressbar" aria-label="Rendering" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"></div>
-      <p class="status body-s muted">${job.frames_done} / ${job.num_frames}${eta}</p>`;
-  }
-  return `${steps}<div class="progress indeterminate" role="progressbar" aria-label="Working"></div>`;
+// Classification yields one crop per visible part, so its count differs from the images rendered.
+const countText = (d) => d.task === "classify" && grid.kind === "dataset" ? plural(grid.count, "crop", "crops") : plural(d.num_frames, "image", "images");
+
+function renderHead() {
+  const d = current;
+  const none = d.status === "none";
+  $("gallery-title").textContent = none ? "Dataset" : d.classes.join(", ");
+  const tag = { running: `<span class="tag busy">Running</span>`, done: `<span class="tag ok">${icon("check")}Ready</span>`,
+                failed: `<span class="tag bad">${icon("error")}Failed</span>`, cancelled: `<span class="tag">Cancelled</span>` }[d.status] ?? "";
+  setHtml($("gallery-meta"), none ? "" : `${tag}<span class="tag">${taskOf(d).name}</span><span class="tag">${countText(d)}</span>`);
+  setHtml($("gallery-actions"),
+    d.status === "running" ? `<button type="button" class="btn btn-text state" data-cancel>Cancel</button>`
+    : d.status === "done" ? `<a class="btn btn-tonal state" href="/api/dataset/download">${icon("download")}Download${d.zip_bytes ? ` (${size(d.zip_bytes)})` : ""}</a>`
+    : "");
+  setHtml($("run"), runHtml(d));
+  $("nav-badge").hidden = d.status !== "running";
 }
 
-// Each dataset is drawn in pieces, and a piece is only redrawn when it
-// changes: progress updates every couple of seconds, so redrawing whole
-// cards would throw away keyboard focus (on Cancel) and reload the preview.
-function jobPieces(job) {
-  const active = job.status === "queued" || job.status === "running";
-  const started = new Date(job.created * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  return {
-    head: `
-      <div>
-        <h3 class="job-title title-m">${esc(job.classes.join(", "))}</h3>
-        <p class="job-meta body-s muted">${plural(job.num_frames, "image", "images")}, ${esc(started)}</p>
-        <div class="job-chips">${statusTag(job)}<span class="tag">${TASK_TEXT[job.task].name}</span></div>
-      </div>
-      ${active ? `<button type="button" class="btn btn-text state" data-cancel="${job.id}">Cancel</button>` : ""}`,
-    progress: progressHtml(job),
-    actions: job.status !== "done" ? "" : `
-      <a class="btn btn-tonal state" href="/api/jobs/${job.id}/download">${icon("download")}Download${job.zip_bytes ? ` (${size(job.zip_bytes)})` : ""}</a>`,
-    shot: job.status !== "done" ? "" : !job.has_preview ? `<div class="shot none body-s muted">Nothing to preview</div>` : `
-      <a class="shot" href="/api/jobs/${job.id}/preview" target="_blank" rel="noopener" aria-label="Open the preview full size">
-        <img src="/api/jobs/${job.id}/preview" alt="${esc(TASK_TEXT[job.task].caption)}" loading="lazy">
-        <span class="open">${icon("open")}</span></a>`,
-  };
-}
-
-function renderJobs(jobs) {
-  const list = $("jobs");
-  const active = jobs.filter((j) => j.status === "queued" || j.status === "running").length;
-  $("nav-badge").hidden = !active;
-  $("nav-badge").textContent = active;
-  if (!jobs.length) return;
-  list.querySelector(".empty")?.remove();
-  jobs.forEach((job, index) => {
-    let card = list.querySelector(`[data-job="${job.id}"]`);
-    if (!card) {
-      card = document.createElement("article");
-      card.className = "job";
-      card.dataset.job = job.id;
-      card.innerHTML = `<div class="job-head" data-piece="head"></div><div data-piece="progress"></div>`
-        + `<div data-piece="actions"></div><div data-piece="shot"></div>`;
-    }
-    for (const [name, html] of Object.entries(jobPieces(job))) {
-      const piece = card.querySelector(`[data-piece="${name}"]`);
-      if (piece.dataset.html !== html) {
-        piece.innerHTML = html;
-        piece.dataset.html = html;
-        piece.hidden = !html;
-      }
-    }
-    card.classList.toggle("has-result", job.status === "done");
-    if (list.children[index] !== card) list.insertBefore(card, list.children[index] ?? null);
-  });
-}
-
-$("jobs").addEventListener("click", async (e) => {
+$("gallery-actions").addEventListener("click", async (e) => {
   const button = e.target.closest("[data-cancel]");
   if (!button) return;
   button.disabled = true;
   button.textContent = "Cancelling…";
-  await fetch(`/api/jobs/${button.dataset.cancel}/cancel`, { method: "POST" });
+  await fetch("/api/dataset/cancel", { method: "POST" });
   refresh();
 });
+
+// ---- image grid (virtualized) -------------------------------------------------------
+//
+// Thousands of images: only the tiles in view (plus a couple of rows either
+// side) exist in the page; a spacer gives the scrollbar the full height.
+
+const gridEl = $("grid");
+const grid = { kind: null, version: null, count: 0, labels: null };
+const TILE_MIN = 150, GAP = 8;
+const tiles = new Map();   // index -> tile element
+let cols = 1, tileSize = TILE_MIN;
+
+const thumbUrl = (i) => `/api/dataset/thumb/${grid.kind}/${i}?v=${grid.version}`;
+const imageUrl = (i) => `/api/dataset/image/${grid.kind}/${i}?v=${grid.version}`;
+const labelOf = (i) => grid.labels?.[i] ?? "";
+
+function clearTiles() {
+  tiles.forEach((el) => el.remove());
+  tiles.clear();
+}
+
+function layout() {
+  const width = gridEl.clientWidth - 8;   // minus the padding kept for the scrollbar
+  cols = Math.max(1, Math.floor((width + GAP) / (TILE_MIN + GAP)));
+  tileSize = (width - GAP * (cols - 1)) / cols;
+  $("grid-spacer").style.height = `${Math.ceil(grid.count / cols) * (tileSize + GAP)}px`;
+  tiles.forEach((el, i) => place(el, i));
+  draw();
+}
+
+function place(el, i) {
+  el.style.width = el.style.height = `${tileSize}px`;
+  el.style.transform = `translate(${(i % cols) * (tileSize + GAP)}px, ${Math.floor(i / cols) * (tileSize + GAP)}px)`;
+}
+
+function draw() {
+  const row = tileSize + GAP;
+  const first = Math.max(0, Math.floor(gridEl.scrollTop / row) - 2) * cols;
+  const last = Math.min(grid.count, Math.ceil((gridEl.scrollTop + gridEl.clientHeight) / row + 2) * cols);
+  tiles.forEach((el, i) => { if (i < first || i >= last) { el.remove(); tiles.delete(i); } });
+  for (let i = first; i < last; i++) {
+    if (tiles.has(i)) continue;
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "tile state";
+    el.dataset.index = i;
+    el.setAttribute("aria-label", `Image ${i + 1}${labelOf(i) ? `, ${labelOf(i)}` : ""}`);
+    el.innerHTML = `<img alt="" loading="lazy" decoding="async" src="${thumbUrl(i)}">${labelOf(i) ? `<span class="cap">${esc(labelOf(i))}</span>` : ""}`;
+    place(el, i);
+    gridEl.appendChild(el);
+    tiles.set(i, el);
+  }
+}
+
+let drawQueued = false;
+gridEl.addEventListener("scroll", () => {
+  if (drawQueued) return;
+  drawQueued = true;
+  requestAnimationFrame(() => { drawQueued = false; draw(); });
+});
+new ResizeObserver(layout).observe(gridEl);
+gridEl.addEventListener("click", (e) => { const t = e.target.closest(".tile"); if (t) openViewer(+t.dataset.index); });
+// A thumbnail requested the moment its frame lands can miss; try once more.
+gridEl.addEventListener("error", (e) => {
+  const img = e.target;
+  if (img.tagName !== "IMG" || img.dataset.retried) return;
+  img.dataset.retried = "1";
+  setTimeout(() => { img.src = img.src; }, 1500);
+}, true);
+
+async function refreshImages() {
+  const r = await (await fetch("/api/dataset/images")).json();
+  const version = current.created ?? 0;
+  if (r.kind !== grid.kind || version !== grid.version) {   // new dataset, or renders -> finished dataset
+    clearTiles();
+    gridEl.scrollTop = 0;
+    Object.assign(grid, { kind: r.kind, version });
+  }
+  const grew = r.count !== grid.count;
+  grid.count = r.count;
+  grid.labels = r.labels;
+  $("empty").hidden = grid.count > 0;
+  if (grew) layout();
+  renderHead();   // the count chip depends on the images
+}
+
+// ---- viewer ------------------------------------------------------------------
+
+let viewing = 0;
+function openViewer(i) {
+  viewing = i;
+  showImage();
+  $("viewer").showModal();
+}
+function showImage() {
+  $("viewer-img").src = imageUrl(viewing);
+  $("viewer-img").alt = `Image ${viewing + 1} of ${grid.count}`;
+  $("viewer-count").textContent = `${viewing + 1} / ${grid.count}${labelOf(viewing) ? `, ${labelOf(viewing)}` : ""}`;
+  $("viewer-prev").disabled = viewing === 0;
+  $("viewer-next").disabled = viewing >= grid.count - 1;
+}
+const step = (by) => { const i = viewing + by; if (i >= 0 && i < grid.count) { viewing = i; showImage(); } };
+$("viewer-prev").addEventListener("click", () => step(-1));
+$("viewer-next").addEventListener("click", () => step(1));
+$("viewer-close").addEventListener("click", () => $("viewer").close());
+$("viewer").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+  if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+});
+$("viewer").addEventListener("click", (e) => { if (e.target === $("viewer")) $("viewer").close(); });   // backdrop
 
 // ---- compact windows: one pane at a time -------------------------------------------
 
 function showView(view) {
   document.body.dataset.view = view;
   document.querySelectorAll(".nav-item").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.view === view)));
+  if (view === "gallery") requestAnimationFrame(layout);   // the grid had no size while hidden
 }
 document.querySelectorAll(".nav-item").forEach((t) => t.addEventListener("click", () => showView(t.dataset.view)));
 
+// ---- polling ----------------------------------------------------------------------
+
 let timer = null;
-let waitingOn = new Set();
+let lastStatus = null;
 async function refresh() {
   clearTimeout(timer);
-  let jobs;
   try {
-    jobs = await (await fetch("/api/jobs")).json();
+    current = await (await fetch("/api/dataset")).json();
   } catch {
     timer = setTimeout(refresh, 5000);
     return;
   }
-  // Tell the user when a dataset they were waiting on finishes.
-  for (const job of jobs) {
-    if (!waitingOn.has(job.id)) continue;
-    if (job.status === "done") snackbar(`Ready: ${job.classes.join(", ")}`, { label: "Download", run: () => { location.href = `/api/jobs/${job.id}/download`; } });
-    if (job.status === "failed") snackbar(`Failed: ${job.classes.join(", ")}`);
+  if (lastStatus === "running" && current.status === "done") snackbar("Dataset ready", { label: "Download", run: () => { location.href = "/api/dataset/download"; } });
+  if (lastStatus === "running" && current.status === "failed") snackbar("Generation failed");
+  lastStatus = current.status;
+  try {
+    renderHead();
+    await refreshImages();
+  } finally {
+    // Keep polling even if drawing fails, so the rest still updates.
+    if (current.status === "running") timer = setTimeout(refresh, 2000);
   }
-  waitingOn = new Set(jobs.filter((j) => j.status === "queued" || j.status === "running").map((j) => j.id));
-  renderJobs(jobs);
-  if (waitingOn.size) timer = setTimeout(refresh, 2000);
 }
 refresh();
 </script>
