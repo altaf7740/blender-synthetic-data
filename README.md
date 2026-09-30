@@ -228,12 +228,16 @@ localhost by default, and should only be opened to a trusted network
 
 ### Training on a GPU
 
-Ultralytics uses the first CUDA GPU on its own. On a Mac it picks the CPU,
-so pass the Apple GPU explicitly:
+Training picks the fastest device it finds: an NVIDIA GPU (CUDA), else an
+Apple GPU (MPS), else the CPU. It prints which one at the start. To choose
+yourself, pass `--device`:
 
 ```
-uv run python src/train.py --output-dir workspace --device mps
+uv run python src/train.py --output-dir workspace --device cpu   # or 0, 1, ... (CUDA GPU), mps
 ```
+
+Rendering does the same: Cycles uses the first GPU it finds (OptiX/CUDA on
+NVIDIA, HIP on AMD, Metal on Apple, oneAPI on Intel), else the CPU.
 
 ### Using your own surface photos
 

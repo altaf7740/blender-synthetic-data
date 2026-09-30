@@ -10,6 +10,7 @@ import argparse
 import os
 from pathlib import Path
 
+import torch
 from ultralytics import YOLO
 
 from synth_pipeline.utils.yolo_dataset import DATASET_DIR, TASKS, read_task
@@ -32,7 +33,9 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--imgsz", type=int, help="Training image size. Default: 224 for classification, else 640.")
     parser.add_argument("--batch", type=int, default=16)
-    parser.add_argument("--device", help="Training device: e.g. 0 (first CUDA GPU), mps (Apple GPU), cpu. Default: auto.")
+    parser.add_argument(
+        "--device", help="Training device: e.g. 0 (first CUDA GPU), mps (Apple GPU), cpu. Default: CUDA, else MPS, else CPU."
+    )
     parser.add_argument(
         "--name", help="Run name under <output-dir>/runs/ (auto-suffixed if taken). Default: the task name."
     )
@@ -41,12 +44,24 @@ def parse_args():
     return args
 
 
+def best_device() -> str:
+    """CUDA if there's an NVIDIA GPU, else Apple's GPU (MPS), else the CPU.
+    Ultralytics on its own never picks MPS, so Macs would train on the CPU."""
+    if torch.cuda.is_available():
+        return "0"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 # Must be guarded by __name__ == "__main__" on Windows: Ultralytics' DataLoader
 # spawns worker processes, and Windows' multiprocessing "spawn" start method
 # re-imports this module in each worker - without the guard that re-triggers
 # model.train() itself and crashes with a "freeze_support()" RuntimeError.
 if __name__ == "__main__":
     args = parse_args()
+    device = args.device or best_device()
+    print(f"Training on {'CUDA GPU ' + device if device.isdigit() else device.upper()}")
     dataset_dir = args.output_dir / DATASET_DIR
     task = read_task(dataset_dir)
     WEIGHTS_CACHE.mkdir(parents=True, exist_ok=True)
@@ -61,5 +76,5 @@ if __name__ == "__main__":
         batch=args.batch,
         project=str(args.output_dir / "runs"),
         name=args.name or task,
-        device=args.device,
+        device=device,
     )
