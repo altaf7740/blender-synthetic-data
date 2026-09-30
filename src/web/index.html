@@ -3,269 +3,496 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dataset bench</title>
+<title>Blender Synthetic Data</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+/* Material 3 color roles, generated from the tool's green seed; brass is the tertiary accent. */
 :root {
-  --zinc: #e7eae8;        /* page: zinc-plated sheet */
-  --panel: #f6f7f6;
-  --ink: #1a211f;
-  --ink-soft: #56615d;
-  --rule: #c7cecb;
-  --mat: #2f5d4f;         /* anti-static work mat */
-  --mat-deep: #264d41;
-  --mat-ink: #e4efe9;
-  --brass: #a8781a;       /* yellow-zinc */
-  --brass-soft: #f3e6c4;
-  --danger: #a3372b;
-  --bin: #eef1ef;
-  color-scheme: light;
+  --md-primary: #2f6a57; --md-on-primary: #ffffff;
+  --md-primary-container: #b3f0d8; --md-on-primary-container: #002118;
+  --md-secondary: #4c6359; --md-on-secondary: #ffffff;
+  --md-secondary-container: #cee9db; --md-on-secondary-container: #082017;
+  --md-tertiary: #775a0b; --md-on-tertiary: #ffffff;
+  --md-tertiary-container: #ffdf9e; --md-on-tertiary-container: #261a00;
+  --md-error: #ba1a1a; --md-on-error: #ffffff;
+  --md-error-container: #ffdad6; --md-on-error-container: #410002;
+  --md-surface: #f5fbf6; --md-on-surface: #171d1a; --md-on-surface-variant: #404944;
+  --md-surface-container-lowest: #ffffff; --md-surface-container-low: #eff5f0;
+  --md-surface-container: #e9efea; --md-surface-container-high: #e4eae5; --md-surface-container-highest: #dee4df;
+  --md-outline: #707974; --md-outline-variant: #bfc9c3;
+  --md-inverse-surface: #2c322f; --md-inverse-on-surface: #ecf2ed; --md-inverse-primary: #97d4bc;
+    color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --zinc: #151b19; --panel: #1c2421; --ink: #e2e8e5; --ink-soft: #9aa7a2; --rule: #33403b;
-    --mat: #244a3e; --mat-deep: #1d3d33; --mat-ink: #d7e7df;
-    --brass: #d8a53f; --brass-soft: #3a3020; --danger: #e07a6c; --bin: #26302c;
+    --md-primary: #97d4bc; --md-on-primary: #00382a;
+    --md-primary-container: #0f513f; --md-on-primary-container: #b3f0d8;
+    --md-secondary: #b2ccc0; --md-on-secondary: #1e352c;
+    --md-secondary-container: #344b42; --md-on-secondary-container: #cee9db;
+    --md-tertiary: #e9c16c; --md-on-tertiary: #3f2e00;
+    --md-tertiary-container: #5b4300; --md-on-tertiary-container: #ffdf9e;
+    --md-error: #ffb4ab; --md-on-error: #690005;
+    --md-error-container: #93000a; --md-on-error-container: #ffdad6;
+    --md-surface: #0f1512; --md-on-surface: #dee4df; --md-on-surface-variant: #bfc9c3;
+    --md-surface-container-lowest: #0a0f0d; --md-surface-container-low: #171d1a;
+    --md-surface-container: #1b211e; --md-surface-container-high: #252b28; --md-surface-container-highest: #303633;
+    --md-outline: #89938e; --md-outline-variant: #404944;
+    --md-inverse-surface: #dee4df; --md-inverse-on-surface: #2c322f; --md-inverse-primary: #2f6a57;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --zinc: #151b19; --panel: #1c2421; --ink: #e2e8e5; --ink-soft: #9aa7a2; --rule: #33403b;
-  --mat: #244a3e; --mat-deep: #1d3d33; --mat-ink: #d7e7df;
-  --brass: #d8a53f; --brass-soft: #3a3020; --danger: #e07a6c; --bin: #26302c;
+  --md-primary: #97d4bc; --md-on-primary: #00382a;
+  --md-primary-container: #0f513f; --md-on-primary-container: #b3f0d8;
+  --md-secondary: #b2ccc0; --md-on-secondary: #1e352c;
+  --md-secondary-container: #344b42; --md-on-secondary-container: #cee9db;
+  --md-tertiary: #e9c16c; --md-on-tertiary: #3f2e00;
+  --md-tertiary-container: #5b4300; --md-on-tertiary-container: #ffdf9e;
+  --md-error: #ffb4ab; --md-on-error: #690005;
+  --md-error-container: #93000a; --md-on-error-container: #ffdad6;
+  --md-surface: #0f1512; --md-on-surface: #dee4df; --md-on-surface-variant: #bfc9c3;
+  --md-surface-container-lowest: #0a0f0d; --md-surface-container-low: #171d1a;
+  --md-surface-container: #1b211e; --md-surface-container-high: #252b28; --md-surface-container-highest: #303633;
+  --md-outline: #89938e; --md-outline-variant: #404944;
+  --md-inverse-surface: #dee4df; --md-inverse-on-surface: #2c322f; --md-inverse-primary: #2f6a57;
   color-scheme: dark;
+}
+:root {
+  --md-ease: cubic-bezier(.2, 0, 0, 1);            /* M3 emphasized */
+  --md-elev-1: 0 1px 2px rgba(0,0,0,.3), 0 1px 3px 1px rgba(0,0,0,.15);
+  --md-elev-3: 0 1px 3px rgba(0,0,0,.3), 0 4px 8px 3px rgba(0,0,0,.15);
 }
 
 * { box-sizing: border-box; }
+html, body { height: 100%; }
 body {
-  margin: 0;
-  background: var(--zinc);
-  color: var(--ink);
-  font: 400 16px/1.5 "Archivo", system-ui, sans-serif;
-  font-stretch: 100%;
+  margin: 0; overflow: hidden;            /* the page never scrolls; panes scroll inside */
+  background: var(--md-surface); color: var(--md-on-surface);
+  font: 400 14px/20px Roboto, system-ui, sans-serif; letter-spacing: .25px;
+  -webkit-font-smoothing: antialiased;
 }
-main { max-width: 860px; margin: 0 auto; padding: 56px 16px 96px; }
+[hidden] { display: none !important; }
+button, input { font: inherit; letter-spacing: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--md-primary); outline-offset: 2px; }
+.i { width: 20px; height: 20px; flex: none; fill: currentColor; }
+.i-24 { width: 24px; height: 24px; }
 
-h1 {
-  margin: 0;
-  font-size: clamp(2.6rem, 8vw, 4.2rem);
-  line-height: .95;
-  font-weight: 750;
-  font-stretch: 68%;
-  letter-spacing: -.01em;
-}
-.lede { margin: 14px 0 36px; max-width: 34em; color: var(--ink-soft); font-size: 1.08rem; }
-h2 { margin: 0 0 14px; font-size: 1.35rem; font-weight: 700; font-stretch: 75%; }
+/* Type scale */
+.title-l { font-size: 22px; line-height: 28px; font-weight: 400; letter-spacing: 0; }
+.title-m { font-size: 16px; line-height: 24px; font-weight: 500; letter-spacing: .15px; }
+.title-s { font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: .1px; }
+.label-l { font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: .1px; }
+.label-m { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: .5px; }
+.body-s { font-size: 12px; line-height: 16px; letter-spacing: .4px; }
+.muted { color: var(--md-on-surface-variant); }
 
-/* ---- the tray: the one loud thing on the page ---- */
-.tray {
-  position: relative;
-  border-radius: 14px;
-  background-color: var(--mat);
-  background-image: radial-gradient(circle, rgba(255,255,255,.07) 1.2px, transparent 1.6px);
-  background-size: 14px 14px;
-  color: var(--mat-ink);
-  padding: 20px;
-  outline: 2px dashed transparent;
-  outline-offset: -10px;
-  transition: outline-color .15s, background-color .15s;
+/* State layer: the M3 hover/focus/press overlay on anything interactive. */
+.state { position: relative; isolation: isolate; overflow: hidden; }
+.state::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: currentColor; opacity: 0; transition: opacity .2s var(--md-ease); pointer-events: none;
 }
-.tray.over { outline-color: var(--brass); background-color: var(--mat-deep); }
+.state:hover::after { opacity: .08; }
+.state:focus-visible::after { opacity: .1; }
+.state:active::after { opacity: .12; }
+
+/* Thin scrollbars on the panes that scroll. */
+.scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--md-outline-variant) transparent; }
+.scroll::-webkit-scrollbar { width: 10px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--md-outline-variant); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
+.scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 24px; border: 0; border-radius: 20px; cursor: pointer;
+  font-size: 14px; font-weight: 500; letter-spacing: .1px; text-decoration: none; white-space: nowrap;
+}
+.btn .i { width: 18px; height: 18px; margin-left: -8px; }
+.btn-filled { background: var(--md-primary); color: var(--md-on-primary); }
+.btn-filled:hover:not(:disabled) { box-shadow: var(--md-elev-1); }
+.btn-tonal { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.btn-text { background: transparent; color: var(--md-primary); padding: 0 12px; }
+.btn-text .i { margin-left: -4px; }
+.btn:disabled { background: color-mix(in srgb, var(--md-on-surface) 12%, transparent); color: color-mix(in srgb, var(--md-on-surface) 38%, transparent); cursor: not-allowed; box-shadow: none; }
+.btn:disabled::after { display: none; }
+.icon-btn {
+  display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none;
+  border: 0; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); cursor: pointer;
+}
+.icon-btn .i { width: 24px; height: 24px; }
+
+/* ---- app frame: top app bar over two panes, exactly one screen tall ---- */
+.app {
+  height: 100dvh; display: grid;
+  grid-template-columns: minmax(360px, 412px) minmax(0, 1fr);
+  grid-template-rows: 64px minmax(0, 1fr);
+  gap: 0 16px; padding: 0 16px 16px;
+}
+.top-bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 4px 0 8px; min-width: 0; }
+.brand {
+  display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 12px;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+}
+.top-bar h1 { margin: 0; flex: 1; white-space: nowrap; }
+
+.pane { min-height: 0; min-width: 0; display: flex; flex-direction: column; border-radius: 24px; }
+.setup { background: var(--md-surface-container-low); padding: 16px; gap: 16px; }
+.gallery { background: var(--md-surface-container-low); padding: 16px 8px 8px 16px; }
+.pane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; min-height: 24px; }
+.pane-head h2 { margin: 0; }
+.gallery .pane-head { padding-right: 8px; margin-bottom: 12px; }
+
+/* ---- parts: the part of the setup pane that grows ---- */
+.parts { flex: 1 1 auto; min-height: 140px; display: flex; flex-direction: column; }
+.drop-area {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px;
+  border-radius: 16px; transition: background-color .2s var(--md-ease);
+}
+.bins { list-style: none; margin: 0; padding: 0 4px 0 0; display: grid; gap: 8px; align-content: start; flex: 0 1 auto; min-height: 0; }
 .drop {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
-  padding: 26px 22px;
-  border: 1.5px dashed rgba(228,239,233,.45);
-  border-radius: 10px;
-  cursor: pointer;
+  position: relative; flex: 1 0 auto; min-height: 88px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center;
+  padding: 16px; border-radius: 16px; cursor: pointer;
+  border: 1px dashed var(--md-outline); background: var(--md-surface-container);
+  transition: background-color .2s var(--md-ease), border-color .2s var(--md-ease);
 }
-.drop strong { font-size: 1.5rem; font-weight: 700; font-stretch: 72%; line-height: 1.1; }
-.drop span { color: rgba(228,239,233,.78); }
-.drop:focus-within { border-color: var(--brass); }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.tray.has-bins .drop { padding: 14px 18px; flex-direction: row; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.tray.has-bins .drop strong { font-size: 1.1rem; }
+.drop .badge-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 16px; background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.drop-area.has-bins .drop { flex: 1 0 auto; min-height: 56px; flex-direction: row; justify-content: flex-start; text-align: left; padding: 8px 16px 8px 8px; gap: 12px; }
+.drop-area.has-bins .drop .badge-icon { width: 40px; height: 40px; border-radius: 12px; }
+.drop:focus-within { outline: 3px solid var(--md-primary); outline-offset: 2px; }
+.drop-area.over .drop { border: 2px solid var(--md-primary); background: var(--md-primary-container); color: var(--md-on-primary-container); }
 
-.bins { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.tray.has-bins .bins { margin-bottom: 14px; }
-.bin {
-  display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: start;
-  background: var(--bin); color: var(--ink);
-  border-radius: 8px; padding: 12px 12px 14px 16px;
-  box-shadow: 0 1px 0 rgba(0,0,0,.25);
+/* A dropped part: avatar, class-name field, remove button */
+.part {
+  display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 0 4px; align-items: start;
+  padding: 10px 4px 6px 12px; border-radius: 16px; background: var(--md-surface-container-lowest);
 }
-.bin .file { font-size: .85rem; color: var(--ink-soft); overflow-wrap: anywhere; }
-.bin .file.bad { color: var(--danger); font-weight: 600; }
-.bin button { grid-row: 1; grid-column: 2; }
-.bin .name { grid-column: 1 / -1; display: grid; gap: 4px; margin-top: 4px; }
-.bin .name span { font-size: .85rem; font-weight: 600; }
-.bin input {
-  width: 100%; min-width: 0;
-  font: inherit; font-size: 1.3rem; font-weight: 650; font-stretch: 70%;
-  color: var(--ink); background: var(--panel);
-  border: 1.5px solid var(--rule); border-radius: 6px; padding: 6px 10px;
-}
-.bin input::placeholder { color: var(--ink-soft); font-weight: 400; }
-.bin input:focus { outline: none; border-color: var(--brass); }
-.bin input[aria-invalid="true"] { border-color: var(--danger); }
-.bin .name-error { color: var(--danger); font-size: .85rem; font-weight: 600; }
+.part .icon-btn { margin-top: 4px; }
 
-/* ---- controls ---- */
-.run { display: flex; flex-wrap: wrap; align-items: end; gap: 18px 28px; margin: 22px 0 0; }
-.field label { display: block; font-weight: 600; margin-bottom: 6px; }
-.frames { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.frames input {
-  width: 7.5em; font: inherit; font-size: 1.05rem; padding: 8px 10px;
-  background: var(--panel); color: var(--ink); border: 1.5px solid var(--rule); border-radius: 6px;
+/* Outlined text field (M3), with the label resting on the border */
+.tf { position: relative; display: block; min-width: 0; }
+.tf input {
+  width: 100%; height: 48px; padding: 0 12px; border-radius: 4px;
+  border: 1px solid var(--md-outline); background: transparent; color: var(--md-on-surface);
+  font-size: 16px; letter-spacing: .5px;
+  transition: border-color .15s var(--md-ease);
 }
-.preset {
-  font: inherit; font-size: .9rem; padding: 7px 10px; cursor: pointer;
-  background: transparent; color: var(--ink-soft); border: 1.5px solid var(--rule); border-radius: 6px;
+.tf input:hover { border-color: var(--md-on-surface); }
+.tf input:focus { outline: none; border: 2px solid var(--md-primary); padding: 0 11px; }
+.tf .tf-label {
+  position: absolute; top: -8px; left: 8px; padding: 0 4px;
+  font-size: 12px; line-height: 16px; letter-spacing: .4px; color: var(--md-on-surface-variant);
+  background: var(--tf-bg, var(--md-surface-container-low)); pointer-events: none;
 }
-.preset[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
-.estimate { margin: 6px 0 0; font-size: .88rem; color: var(--ink-soft); }
+.tf input:focus + .tf-label { color: var(--md-primary); }
+.tf input[aria-invalid="true"] { border-color: var(--md-error); }
+.tf input[aria-invalid="true"] + .tf-label { color: var(--md-error); }
+.tf-support { display: block; padding: 4px 16px 0; font-size: 12px; line-height: 16px; letter-spacing: .4px; color: var(--md-on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tf-support.error { color: var(--md-error); white-space: normal; }
+.part .tf { --tf-bg: var(--md-surface-container-lowest); }
 
-fieldset.task { border: 0; margin: 0; padding: 0; min-width: 0; }
-fieldset.task legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
-.choices { display: flex; flex-wrap: wrap; gap: 8px; }
-.choice { position: relative; }
-.choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.choice span {
-  display: block; padding: 7px 12px; border: 1.5px solid var(--rule); border-radius: 6px;
-  color: var(--ink-soft); font-size: .95rem; line-height: 1.3;
+/* ---- label type: M3 segmented button ---- */
+.segmented { display: grid; grid-template-columns: repeat(3, 1fr); border: 0; margin: 0; padding: 0; min-width: 0; }
+.segmented label { position: relative; display: block; min-width: 0; cursor: pointer; }
+.segmented input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.segmented span {
+  display: flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 0 8px;
+  border: 1px solid var(--md-outline); margin-left: -1px;
+  font-size: 13px; font-weight: 500; letter-spacing: .1px; color: var(--md-on-surface); white-space: nowrap;
+  transition: background-color .2s var(--md-ease);
 }
-.choice small { display: block; font-size: .8rem; }
-.choice input:checked + span { color: var(--ink); border-color: var(--ink); }
-.choice input:focus-visible + span { outline: 3px solid var(--brass); outline-offset: 2px; }
+.segmented label:first-child span { border-radius: 20px 0 0 20px; margin-left: 0; }
+.segmented label:last-child span { border-radius: 0 20px 20px 0; }
+.segmented .i { width: 16px; height: 16px; display: none; }
+.segmented input:checked + span { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.segmented input:checked + span .i { display: block; }
+.segmented input:focus-visible + span { outline: 3px solid var(--md-primary); outline-offset: 2px; z-index: 1; }
 
-.primary {
-  font: inherit; font-weight: 700; font-size: 1.05rem;
-  padding: 12px 22px; border: 0; border-radius: 8px; cursor: pointer;
-  background: var(--ink); color: var(--zinc);
+/* ---- image count: text field + slider ---- */
+.frames-row { display: flex; align-items: center; gap: 16px; padding-top: 6px; }
+.frames-row .tf { width: 104px; flex: none; }
+/* M3 slider: primary active track up to the handle, tonal track after it */
+.slider {
+  --fill: 50%;
+  flex: 1; min-width: 0; height: 40px; margin: 0; background: transparent; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
 }
-.primary:disabled { opacity: .4; cursor: not-allowed; }
-.quiet {
-  font: inherit; font-size: .9rem; padding: 6px 10px; cursor: pointer;
-  background: transparent; color: var(--ink-soft); border: 1.5px solid var(--rule); border-radius: 6px;
+.slider::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--md-primary) var(--fill), var(--md-secondary-container) var(--fill));
 }
-.quiet:hover { color: var(--ink); border-color: var(--ink-soft); }
-.form-error { margin: 12px 0 0; color: var(--danger); font-weight: 600; }
-:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.slider::-moz-range-track { height: 4px; border-radius: 2px; background: var(--md-secondary-container); }
+.slider::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--md-primary); }
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px; margin-top: -8px; border: 0; border-radius: 50%;
+  background: var(--md-primary); box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 12%, transparent);
+  transition: box-shadow .2s var(--md-ease);
+}
+.slider::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--md-primary); }
+.slider:hover::-webkit-slider-thumb { box-shadow: 0 0 0 10px color-mix(in srgb, var(--md-primary) 8%, transparent); }
+.slider:active::-webkit-slider-thumb { box-shadow: 0 0 0 10px color-mix(in srgb, var(--md-primary) 12%, transparent); }
+.slider:focus-visible { outline: none; }
+.slider:focus-visible::-webkit-slider-thumb { outline: 3px solid var(--md-primary); outline-offset: 3px; }
+.slider:focus-visible::-moz-range-thumb { outline: 3px solid var(--md-primary); outline-offset: 3px; }
 
-/* ---- jobs ---- */
-.jobs { margin-top: 64px; }
-.empty { color: var(--ink-soft); margin: 0; }
-.job { border-top: 1.5px solid var(--rule); padding: 22px 0 26px; }
-.job-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
-.job-title { margin: 0; font-size: 1.2rem; font-weight: 650; font-stretch: 72%; }
-.job-meta { margin: 2px 0 0; color: var(--ink-soft); font-size: .9rem; }
+/* ---- summary + generate ---- */
+.go { display: grid; gap: 8px; padding-top: 4px; }
+.summary { margin: 0; text-align: center; }
+.summary.blocked { color: var(--md-on-surface-variant); }
+.go .btn { width: 100%; height: 48px; border-radius: 24px; font-size: 16px; }
 
-.track { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0; margin: 18px 0 10px; counter-reset: step; }
-.track li { counter-increment: step; font-size: .88rem; color: var(--ink-soft); }
-.track li::before {
-  content: counter(step) "  "; font-weight: 700;
+/* ---- gallery ---- */
+.gallery-list { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 2px 8px 8px 0; container-type: inline-size; }
+.empty {
+  margin: auto; max-width: 360px; text-align: center; padding: 24px;
+  display: grid; justify-items: center; gap: 8px; color: var(--md-on-surface-variant);
 }
-.track li::after {
-  content: ""; display: block; height: 5px; margin-top: 6px; border-radius: 3px; background: var(--rule);
-}
-.track li.done { color: var(--ink); }
-.track li.done::after { background: var(--mat); }
-.track li.active { color: var(--ink); font-weight: 600; }
-.track li.active::after { background: linear-gradient(90deg, var(--brass) var(--p, 35%), var(--rule) var(--p, 35%)); }
-.track li.failed { color: var(--danger); font-weight: 600; }
-.track li.failed::after { background: var(--danger); }
+.empty .badge-icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 8px; border-radius: 20px; background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); }
+.empty p { margin: 0; }
+.empty .title-m { color: var(--md-on-surface); }
 
-.status { margin: 0; font-size: .95rem; }
-.status.bad { color: var(--danger); font-weight: 600; }
+.job {
+  flex: none; min-width: 0; padding: 16px; border-radius: 16px;
+  background: var(--md-surface-container-lowest); box-shadow: var(--md-elev-1);
+}
+.job.has-result {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); column-gap: 20px; align-items: start;
+  grid-template-areas: "head shot" "progress shot" "actions shot"; grid-template-rows: auto auto 1fr;
+}
+.job [data-piece="head"] { grid-area: head; }
+.job [data-piece="progress"] { grid-area: progress; }
+.job [data-piece="actions"] { grid-area: actions; }
+.job [data-piece="shot"] { grid-area: shot; }
+@container (max-width: 640px) {
+  .job.has-result { display: block; }
+  .job [data-piece="shot"] { margin-top: 12px; }
+}
+.job-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.job-head > div { min-width: 0; }
+.job-title { margin: 0; overflow-wrap: anywhere; }
+.job-meta { margin: 2px 0 0; }
+.job-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag {
+  display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 6px;
+  font-size: 12px; font-weight: 500; letter-spacing: .5px;
+  background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
+}
+.tag .i { width: 14px; height: 14px; }
+.tag.ok { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.tag.busy { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+.tag.bad { background: var(--md-error-container); color: var(--md-on-error-container); }
+
+/* Stepper: one step per pipeline stage */
+.steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 0; margin: 14px 0 10px; }
+.steps li { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 500; letter-spacing: .5px; color: var(--md-on-surface-variant); }
+.steps li span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.steps .dot { width: 20px; height: 20px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--md-outline-variant); }
+.steps .dot .i { width: 14px; height: 14px; }
+.steps li.done { color: var(--md-on-surface); }
+.steps li.done .dot { border: 0; background: var(--md-primary); color: var(--md-on-primary); }
+.steps li.active { color: var(--md-primary); }
+.steps li.active .dot { border-color: var(--md-primary); background: radial-gradient(var(--md-primary) 38%, transparent 42%); }
+.steps li.failed { color: var(--md-error); }
+.steps li.failed .dot { border: 0; background: var(--md-error); color: var(--md-on-error); }
+
+/* Linear progress (M3): active track, gap, inactive track */
+.progress { position: relative; height: 4px; margin: 0 0 8px; border-radius: 2px; overflow: hidden; }
+.progress::before { content: ""; position: absolute; inset: 0; left: calc(var(--p) + 4px); background: var(--md-secondary-container); border-radius: 2px; }
+.progress::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: var(--p); background: var(--md-primary); border-radius: 2px; transition: width .4s var(--md-ease); }
+.progress.indeterminate::before { left: 0; }
+.progress.indeterminate::after { width: 40%; animation: indeterminate 1.6s var(--md-ease) infinite; }
+@keyframes indeterminate { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+.status { margin: 0; }
+.status.bad { color: var(--md-error); }
 pre.log {
-  margin: 10px 0 0; padding: 12px; max-height: 220px; overflow: auto;
-  background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
-  font-size: .78rem; line-height: 1.45; white-space: pre-wrap;
+  margin: 8px 0 0; padding: 8px 12px; max-height: 140px; overflow: auto; border-radius: 8px;
+  background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
+  font: 12px/16px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap;
 }
-.result { margin-top: 16px; }
-.result img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--rule); }
-.result .caption { font-size: .85rem; color: var(--ink-soft); margin: 8px 0 14px; }
-.download {
-  display: inline-block; text-decoration: none;
-  font-weight: 700; padding: 11px 20px; border-radius: 8px;
-  background: var(--brass); color: #1a1406;
+[data-piece="actions"] { margin-top: 16px; display: grid; gap: 12px; justify-items: start; }
+.usage { margin: 0; }
+.usage code { font: 12px/16px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--md-surface-container-high); padding: 1px 4px; border-radius: 4px; }
+.shot { position: relative; display: block; border-radius: 12px; overflow: hidden; background: var(--md-surface-container-high); }
+.shot.none { display: grid; place-items: center; min-height: 120px; }
+.shot img { display: block; width: 100%; height: auto; max-height: 280px; object-fit: contain; object-position: left top; }
+.shot .open {
+  position: absolute; right: 8px; bottom: 8px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px;
+  background: var(--md-surface-container-lowest); color: var(--md-on-surface); box-shadow: var(--md-elev-1);
+  opacity: 0; transition: opacity .2s var(--md-ease);
 }
-.usage { margin: 12px 0 0; font-size: .9rem; color: var(--ink-soft); max-width: 44em; }
-.usage code { font-size: .85em; background: var(--panel); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--rule); }
+.shot:hover .open, .shot:focus-visible .open { opacity: 1; }
 
-@media (max-width: 560px) {
-  main { padding-top: 36px; }
-  .track li { font-size: .78rem; }
+/* Snackbar */
+.snackbar {
+  position: fixed; left: 50%; bottom: 24px; z-index: 10; transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 8px; min-height: 48px; max-width: min(560px, calc(100vw - 32px));
+  padding: 6px 8px 6px 16px; border-radius: 4px; box-shadow: var(--md-elev-3);
+  background: var(--md-inverse-surface); color: var(--md-inverse-on-surface);
+  transition: opacity .2s var(--md-ease), transform .2s var(--md-ease);
+}
+.snackbar.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.snackbar p { margin: 0; flex: 1; }
+.snackbar .btn-text { color: var(--md-inverse-primary); height: 36px; }
+
+/* Navigation bar (compact windows only) */
+.nav-bar { display: none; }
+
+/* Short windows: the setup pane scrolls on its own, never the page. */
+@media (max-height: 700px) and (min-width: 861px) {
+  .setup { overflow-y: auto; }
+  .parts { min-height: 150px; }
+}
+
+/* Compact windows: one pane at a time, switched from a bottom navigation bar. */
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: 56px minmax(0, 1fr) 80px; padding: 0 12px; gap: 0; }
+  .pane { border-radius: 20px; }
+  .setup { overflow-y: auto; }
+  body[data-view="setup"] .gallery, body[data-view="gallery"] .setup { display: none; }
+  .nav-bar {
+    display: grid; grid-template-columns: 1fr 1fr; align-items: center; margin: 8px -12px 0;
+    background: var(--md-surface-container); padding: 12px 0 16px;
+  }
+  .nav-item { display: grid; justify-items: center; gap: 4px; border: 0; background: none; cursor: pointer; color: var(--md-on-surface-variant); padding: 0; }
+  .nav-item .indicator { position: relative; display: grid; place-items: center; width: 64px; height: 32px; border-radius: 16px; transition: background-color .2s var(--md-ease); overflow: visible; }
+  .nav-item[aria-selected="true"] { color: var(--md-on-surface); }
+  .nav-item[aria-selected="true"] .indicator { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+  .nav-badge { position: absolute; top: -2px; left: 38px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--md-error); color: var(--md-on-error); font-size: 11px; line-height: 16px; font-weight: 500; }
+  .snackbar { bottom: 96px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
 </head>
-<body>
-<main>
-  <h1>Dataset bench</h1>
-  <p class="lede">Drop the STEP files of your parts. Each part is rendered thousands of ways and labelled pixel by pixel, and you get back a YOLO dataset ready to train on.</p>
+<body data-view="setup">
 
-  <form id="form" novalidate>
-    <div class="tray" id="tray">
-      <ul class="bins" id="bins" aria-label="Parts in this dataset"></ul>
-      <label class="drop" id="drop">
-        <input type="file" id="picker" multiple accept=".step,.stp,.zip">
-        <strong id="drop-title">Drop STEP files here</strong>
-        <span id="drop-hint">One file per part: .step, .stp, or a .zip containing one. Or click to choose files.</span>
-      </label>
-    </div>
+<!-- Material Symbols (Apache 2.0), inlined so the page works offline. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cube" viewBox="0 0 24 24"><path d="M11 21.73 4 17.73V9.27l7 4Zm2 0v-8.46l7-4v8.46ZM12 11.5 5.04 7.52 12 3.5l6.96 4.02Z"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M11 16V7.85l-2.6 2.6L7 9l5-5 5 5-1.4 1.45-2.6-2.6V16Zm-5 4q-.83 0-1.41-.59Q4 18.83 4 18v-3h2v3h12v-3h2v3q0 .83-.59 1.41Q18.83 20 18 20Z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5l5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m9.55 18-5.7-5.7 1.43-1.43 4.27 4.28 9.17-9.18 1.43 1.43Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="m12 16-5-5 1.4-1.45 2.6 2.6V4h2v8.15l2.6-2.6L17 11Zm-6 4q-.83 0-1.41-.59Q4 18.83 4 18v-3h2v3h12v-3h2v3q0 .83-.59 1.41Q18.83 20 18 20Z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 19V5l11 7Z"/></symbol>
+  <symbol id="i-open" viewBox="0 0 24 24"><path d="M5 21q-.83 0-1.41-.59Q3 19.83 3 19V5q0-.83.59-1.41Q4.17 3 5 3h7v2H5v14h14v-7h2v7q0 .83-.59 1.41Q19.83 21 19 21Zm4.7-5.3-1.4-1.4L17.6 5H14V3h7v7h-2V6.4Z"/></symbol>
+  <symbol id="i-error" viewBox="0 0 24 24"><path d="M11 17h2v-6h-2Zm1-8q.43 0 .71-.29Q13 8.43 13 8t-.29-.71Q12.43 7 12 7t-.71.29Q11 7.57 11 8t.29.71Q11.57 9 12 9Zm0 13q-2.08 0-3.9-.79-1.82-.78-3.17-2.13-1.35-1.35-2.14-3.18Q2 14.08 2 12t.79-3.9q.79-1.82 2.14-3.17Q6.28 3.58 8.1 2.79 9.92 2 12 2t3.9.79q1.82.79 3.17 2.14 1.35 1.35 2.14 3.17Q22 9.92 22 12t-.79 3.9q-.79 1.83-2.14 3.18-1.35 1.35-3.17 2.13Q14.08 22 12 22Z"/></symbol>
+  <symbol id="i-schedule" viewBox="0 0 24 24"><path d="m15.3 16.7 1.4-1.4-3.7-3.7V7h-2v5.4ZM12 22q-2.08 0-3.9-.79-1.82-.78-3.17-2.13-1.35-1.35-2.14-3.18Q2 14.08 2 12t.79-3.9q.79-1.82 2.14-3.17Q6.28 3.58 8.1 2.79 9.92 2 12 2t3.9.79q1.82.79 3.17 2.14 1.35 1.35 2.14 3.17Q22 9.92 22 12t-.79 3.9q-.79 1.83-2.14 3.18-1.35 1.35-3.17 2.13Q14.08 22 12 22Zm0-2q3.33 0 5.67-2.33Q20 15.33 20 12t-2.33-5.67Q15.33 4 12 4T6.33 6.33Q4 8.67 4 12t2.33 5.67Q8.67 20 12 20Z"/></symbol>
+  <symbol id="i-add" viewBox="0 0 24 24"><path d="M11 19v-6H5v-2h6V5h2v6h6v2h-6v6Z"/></symbol>
+  <symbol id="i-gallery" viewBox="0 0 24 24"><path d="M9 14h10l-3.45-4.5-2.3 3-1.55-2Zm-1 4q-.83 0-1.41-.59Q6 16.83 6 16V4q0-.83.59-1.41Q7.17 2 8 2h12q.83 0 1.41.59Q22 3.17 22 4v12q0 .83-.59 1.41Q20.83 18 20 18Zm0-2h12V4H8v12Zm-4 6q-.83 0-1.41-.59Q2 20.83 2 20V6h2v14h14v2ZM8 4v12Z"/></symbol>
+  <symbol id="i-dark" viewBox="0 0 24 24"><path d="M12 21q-3.75 0-6.37-2.63Q3 15.75 3 12t2.63-6.37Q8.25 3 12 3q.35 0 .69.03.33.02.66.07-1.03.73-1.64 1.9Q11.1 6.18 11.1 7.5q0 2.25 1.58 3.82Q14.25 12.9 16.5 12.9q1.35 0 2.51-.61 1.16-.61 1.89-1.64.05.33.07.66.03.34.03.69 0 3.75-2.63 6.37Q15.75 21 12 21Z"/></symbol>
+  <symbol id="i-light" viewBox="0 0 24 24"><path d="M12 17q-2.08 0-3.54-1.46Q7 14.08 7 12t1.46-3.54Q9.92 7 12 7t3.54 1.46Q17 9.92 17 12t-1.46 3.54Q14.08 17 12 17ZM11 5V1h2v4Zm0 18v-4h2v4Zm8-10v-2h4v2ZM1 13v-2h4v2Zm16.66-5.24-1.42-1.42 2.83-2.83 1.42 1.42ZM4.93 20.49l-1.42-1.42 2.83-2.83 1.42 1.42Zm14.14 0-2.83-2.83 1.42-1.42 2.83 2.83ZM6.34 7.76 3.51 4.93l1.42-1.42 2.83 2.83Z"/></symbol>
+</svg>
 
-    <div class="run">
-      <div class="field">
-        <label for="frames">Images to render</label>
-        <div class="frames">
-          <input type="number" id="frames" min="1" max="20000" value="2000" inputmode="numeric">
-          <button type="button" class="preset" data-frames="20">20 to test</button>
-          <button type="button" class="preset" data-frames="500">500</button>
-          <button type="button" class="preset" data-frames="2000">2000</button>
-        </div>
-        <p class="estimate" id="estimate"></p>
+<div class="app">
+  <header class="top-bar">
+    <span class="brand" aria-hidden="true"><svg class="i i-24"><use href="#i-cube"/></svg></span>
+    <h1 class="title-l">Blender Synthetic Data</h1>
+    <button type="button" class="icon-btn state" id="theme" aria-label="Switch to dark theme"><svg class="i"><use href="#i-dark"/></svg></button>
+  </header>
+
+  <form class="pane setup" id="form" novalidate aria-label="New dataset">
+    <section class="parts" aria-labelledby="parts-title">
+      <div class="pane-head">
+        <h2 class="title-s" id="parts-title">Parts</h2>
+        <span class="label-m muted" id="parts-count" aria-live="polite"></span>
       </div>
-      <fieldset class="task">
-        <legend>Labels</legend>
-        <div class="choices">
-          <label class="choice"><input type="radio" name="task" value="segment" checked><span>Outlines<small>for segmentation</small></span></label>
-          <label class="choice"><input type="radio" name="task" value="detect"><span>Boxes<small>for detection</small></span></label>
-          <label class="choice"><input type="radio" name="task" value="classify"><span>Crops<small>for classification</small></span></label>
-        </div>
+      <div class="drop-area" id="tray">
+        <ul class="bins scroll" id="bins" aria-label="Parts in this dataset"></ul>
+        <label class="drop state" id="drop">
+          <input type="file" id="picker" multiple accept=".step,.stp,.zip">
+          <span class="badge-icon"><svg class="i i-24"><use href="#i-upload"/></svg></span>
+          <span class="title-s" id="drop-title">Drop STEP files</span>
+        </label>
+      </div>
+    </section>
+
+    <section aria-labelledby="labels-title">
+      <div class="pane-head"><h2 class="title-s" id="labels-title">Task</h2></div>
+      <fieldset class="segmented" aria-labelledby="labels-title">
+        <label><input type="radio" name="task" value="segment" checked><span class="state"><svg class="i"><use href="#i-check"/></svg>Segmentation</span></label>
+        <label><input type="radio" name="task" value="detect"><span class="state"><svg class="i"><use href="#i-check"/></svg>Detection</span></label>
+        <label><input type="radio" name="task" value="classify"><span class="state"><svg class="i"><use href="#i-check"/></svg>Classification</span></label>
       </fieldset>
-      <button type="submit" class="primary" id="submit" disabled>Generate dataset</button>
+    </section>
+
+    <section>
+      <div class="frames-row">
+        <label class="tf">
+          <input type="number" id="frames" min="1" max="20000" value="2000" inputmode="numeric">
+          <span class="tf-label">Images</span>
+        </label>
+        <input type="range" class="slider" id="frames-slider" min="0" max="1000" step="1" aria-label="Images">
+      </div>
+    </section>
+
+    <div class="go">
+      <p class="summary body-s" id="summary" aria-live="polite"></p>
+      <button type="submit" class="btn btn-filled state" id="submit" disabled><svg class="i"><use href="#i-play"/></svg><span id="submit-label">Generate dataset</span></button>
     </div>
-    <p class="form-error" id="form-error" role="alert" hidden></p>
   </form>
 
-  <section class="jobs" aria-labelledby="jobs-title">
-    <h2 id="jobs-title">Datasets</h2>
-    <div id="jobs"><p class="empty">Nothing generated yet. Datasets you start appear here, with a preview and a download once they're ready.</p></div>
+  <section class="pane gallery" id="gallery" aria-labelledby="jobs-title">
+    <div class="pane-head">
+      <h2 class="title-m" id="jobs-title">Datasets</h2>
+    </div>
+    <div class="gallery-list scroll" id="jobs" tabindex="0" aria-label="Datasets">
+      <div class="empty">
+        <span class="badge-icon"><svg class="i i-24"><use href="#i-gallery"/></svg></span>
+        <p class="title-m">Nothing to preview</p>
+      </div>
+    </div>
   </section>
-</main>
+
+  <nav class="nav-bar" role="tablist" aria-label="View">
+    <button type="button" class="nav-item" role="tab" aria-selected="true" aria-controls="form" data-view="setup">
+      <span class="indicator state"><svg class="i i-24"><use href="#i-add"/></svg></span>
+      <span class="label-m">New dataset</span>
+    </button>
+    <button type="button" class="nav-item" role="tab" aria-selected="false" aria-controls="gallery" data-view="gallery">
+      <span class="indicator state"><svg class="i i-24"><use href="#i-gallery"/></svg><span class="nav-badge" id="nav-badge" hidden></span></span>
+      <span class="label-m">Datasets</span>
+    </button>
+  </nav>
+</div>
+
+<div class="snackbar" id="snackbar" role="status" aria-live="polite">
+  <p id="snackbar-text"></p>
+  <button type="button" class="btn btn-text state" id="snackbar-action" hidden></button>
+</div>
 
 <script>
 const SECONDS_PER_FRAME = 2;   // measured on an M2 Pro GPU at the default settings
+const MAX_FRAMES = 20000;
 const CLASS_NAME = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/;
 const CAD = /\.(step|stp|zip)$/i;
-// Per label type: what a dataset holds, and how to train on the unzipped folder.
+// Per label type: its chip name, and the preview's description (its alt text).
 const TASK_TEXT = {
-  segment: { meta: "labelled with outlines", caption: "A few images per class, with the labels drawn on exactly as training will read them.", usage: "YOLO format with outline labels. Train a segmentation model such as <code>yolo26n-seg.pt</code>, pointing <code>data=</code> at the unzipped <code>data.yaml</code>." },
-  detect: { meta: "labelled with boxes", caption: "A few images per class, with the labels drawn on exactly as training will read them.", usage: "YOLO format with box labels. Train a detection model such as <code>yolo26n.pt</code>, pointing <code>data=</code> at the unzipped <code>data.yaml</code>." },
-  classify: { meta: "cut into part crops", caption: "A few crops per class, exactly as training will see them.", usage: "One folder of cropped parts per class, split into <code>train/</code> and <code>val/</code>. Train a classification model such as <code>yolo26n-cls.pt</code>, pointing <code>data=</code> at the unzipped <code>yolo_dataset</code> folder." },
+  segment: { name: "Segmentation", caption: "Sample images per class with their outline labels drawn on" },
+  detect: { name: "Detection", caption: "Sample images per class with their box labels drawn on" },
+  classify: { name: "Classification", caption: "Sample crops per class" },
 };
 const STAGES = [["convert", "Convert"], ["generate", "Render"], ["dataset", "Label"], ["package", "Package"]];
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const icon = (name) => `<svg class="i" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 let parts = [];  // {file, name}
 
+// Remembered per browser: theme, last label type and image count. Storage can be unavailable; that's fine.
+const remembered = {
+  get(key) { try { return localStorage.getItem(`bench.${key}`); } catch { return null; } },
+  set(key, value) { try { localStorage.setItem(`bench.${key}`, value); } catch {} },
+};
+
 function classNameFrom(filename) {
-  let name = filename.replace(/\.[^.]+$/, "").normalize("NFD").replace(/[̀-ͯ]/g, "")  // Parça -> Parca
+  const name = filename.replace(/\.[^.]+$/, "").normalize("NFD").replace(/[̀-ͯ]/g, "")  // Parça -> Parca
     .toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   return (name || "part").slice(0, 64);
 }
@@ -273,11 +500,51 @@ function classNameFrom(filename) {
 function duration(seconds) {
   const m = Math.round(seconds / 60);
   if (m < 1) return "under a minute";
-  if (m < 60) return `${m} min`;
-  return `${Math.floor(m / 60)} h ${m % 60} min`;
+  // Non-breaking spaces, so "1 h 8 min" never wraps mid-way.
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)} h ${m % 60} min`;
 }
 
-// ---- tray ----------------------------------------------------------------
+function size(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+}
+
+const task = () => document.querySelector('input[name="task"]:checked').value;
+const frameCount = () => { const n = Number($("frames").value); return Number.isInteger(n) && n >= 1 && n <= MAX_FRAMES ? n : null; };
+
+// ---- theme -----------------------------------------------------------------
+
+const isDark = () => document.documentElement.dataset.theme
+  ? document.documentElement.dataset.theme === "dark"
+  : matchMedia("(prefers-color-scheme: dark)").matches;
+function applyTheme(theme) {
+  if (theme) document.documentElement.dataset.theme = theme;
+  $("theme").innerHTML = icon(isDark() ? "light" : "dark");
+  $("theme").setAttribute("aria-label", isDark() ? "Switch to light theme" : "Switch to dark theme");
+}
+$("theme").addEventListener("click", () => {
+  const next = isDark() ? "light" : "dark";
+  remembered.set("theme", next);
+  applyTheme(next);
+});
+applyTheme(remembered.get("theme"));
+
+// ---- snackbar ----------------------------------------------------------------
+
+let snackTimer = null;
+function snackbar(message, action) {
+  $("snackbar-text").textContent = message;
+  const button = $("snackbar-action");
+  button.hidden = !action;
+  if (action) { button.textContent = action.label; button.onclick = () => { hideSnackbar(); action.run(); }; }
+  $("snackbar").classList.add("show");
+  clearTimeout(snackTimer);
+  snackTimer = setTimeout(hideSnackbar, action ? 8000 : 5000);
+}
+const hideSnackbar = () => $("snackbar").classList.remove("show");
+
+// ---- parts -----------------------------------------------------------------
 
 function addFiles(files) {
   const first = parts.length;
@@ -285,7 +552,7 @@ function addFiles(files) {
   renderBins();
   // Ask for the real name straight away: select the suggestion so typing replaces it.
   const input = $("bins").children[first]?.querySelector("input");
-  if (input) { input.focus(); input.select(); }
+  if (input) { input.focus(); input.select(); input.scrollIntoView({ block: "nearest" }); }
 }
 
 const cleanName = (s) => s.trim().replace(/\s+/g, " ");
@@ -308,142 +575,243 @@ function renderBins() {
   bins.innerHTML = "";
   const issues = problems();
   parts.forEach((p, i) => {
-    const nameIssue = issues.find(([j, kind]) => j === i && kind === "name");
-    const fileIssue = issues.find(([j, kind]) => j === i && kind === "file");
+    const issue = issues.find(([j]) => j === i);
     const li = document.createElement("li");
-    li.className = "bin";
+    li.className = "part";
     li.innerHTML = `
-      <span class="file ${fileIssue ? "bad" : ""}">${esc(fileIssue?.[2] ?? `${p.file.name}, ${(p.file.size / 1024).toFixed(0)} KB`)}</span>
-      <button type="button" class="quiet">Remove</button>
-      <label class="name">
-        <span>Class name</span>
-        <input value="${esc(p.name)}" placeholder="What is this part? e.g. hex nut M5" spellcheck="false" maxlength="64"
-               aria-describedby="name-error-${i}" ${nameIssue ? 'aria-invalid="true"' : ""}>
-        <span class="name-error" id="name-error-${i}" ${nameIssue ? "" : "hidden"}>${esc(nameIssue?.[2] ?? "")}</span>
-      </label>`;
+      <div>
+        <label class="tf">
+          <input value="${esc(p.name)}" spellcheck="false" maxlength="64"
+                 aria-describedby="part-support-${i}" ${issue ? 'aria-invalid="true"' : ""}>
+          <span class="tf-label">Class name</span>
+        </label>
+        <span class="tf-support ${issue ? "error" : ""}" id="part-support-${i}">${esc(issue?.[2] ?? p.file.name)}</span>
+      </div>
+      <button type="button" class="icon-btn state" aria-label="Remove ${esc(p.file.name)}">${icon("close")}</button>`;
     const input = li.querySelector("input");
-    // Typing only updates the name and the Generate button; the row redraws on leaving the field.
-    input.addEventListener("input", () => { p.name = cleanName(input.value); updateSubmit(); });
+    // Typing only updates the name and the summary; the row redraws on leaving the field.
+    input.addEventListener("input", () => { p.name = cleanName(input.value); updateSummary(); });
     input.addEventListener("change", () => renderBins());
-    li.querySelector("button").addEventListener("click", () => { parts.splice(i, 1); renderBins(); });
+    li.querySelector("button").addEventListener("click", () => {
+      const [removed] = parts.splice(i, 1);
+      renderBins();
+      (bins.children[Math.min(i, parts.length - 1)]?.querySelector("button") ?? $("picker")).focus();
+      snackbar(`Removed ${removed.name || removed.file.name}`, { label: "Undo", run: () => { parts.splice(i, 0, removed); renderBins(); } });
+    });
     bins.appendChild(li);
   });
   $("tray").classList.toggle("has-bins", parts.length > 0);
-  $("drop-title").textContent = parts.length ? "Add more parts" : "Drop STEP files here";
-  $("drop-hint").textContent = parts.length
-    ? "Each file is one class. Its class name is what the model will call that part."
-    : "One file per part: .step, .stp, or a .zip containing one. Or click to choose files.";
-  updateSubmit(issues);
+  $("parts-count").textContent = parts.length || "";
+  $("drop-title").textContent = parts.length ? "Add more" : "Drop STEP files";
+  updateSummary(issues);
 }
 
-function updateSubmit(issues = problems()) {
-  $("submit").disabled = parts.length === 0 || issues.length > 0;
-}
-
+// Files dropped anywhere on the page land in the parts list, instead of the browser opening them.
 const tray = $("tray");
-["dragenter", "dragover"].forEach((t) => tray.addEventListener(t, (e) => { e.preventDefault(); tray.classList.add("over"); }));
-["dragleave", "drop"].forEach((t) => tray.addEventListener(t, (e) => { e.preventDefault(); if (t === "drop" || !tray.contains(e.relatedTarget)) tray.classList.remove("over"); }));
-tray.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
+const hasFiles = (e) => [...(e.dataTransfer?.types ?? [])].includes("Files");
+let dragDepth = 0;
+window.addEventListener("dragenter", (e) => { if (hasFiles(e)) { e.preventDefault(); dragDepth++; tray.classList.add("over"); showView("setup"); } });
+window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener("dragleave", (e) => { if (hasFiles(e) && --dragDepth <= 0) { dragDepth = 0; tray.classList.remove("over"); } });
+window.addEventListener("drop", (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  tray.classList.remove("over");
+  addFiles(e.dataTransfer.files);
+});
 $("picker").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
 
-// ---- frames ----------------------------------------------------------------
+// ---- settings and summary ------------------------------------------------------
 
-function updateEstimate() {
-  const n = parseInt($("frames").value, 10) || 0;
-  document.querySelectorAll(".preset").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.frames === n)));
-  $("estimate").textContent = n > 0
-    ? `Takes about ${duration(n * SECONDS_PER_FRAME + 60)} on a recent GPU. 20 is enough to check the parts look right; train on 2000 or more.`
-    : "Enter how many images to render.";
+function updateSummary(issues = problems()) {
+  const n = frameCount();
+  $("frames").setAttribute("aria-invalid", String(n === null));
+  if (n !== null && document.activeElement !== $("frames-slider")) setSlider(n);
+
+  let blocked = null;
+  if (!parts.length) blocked = "Add a STEP file";
+  else if (issues.some(([, kind]) => kind === "file")) blocked = "Remove the non-STEP files";
+  else if (issues.length) blocked = "Fix the class names in red";
+  else if (n === null) blocked = `Images: 1 to ${MAX_FRAMES}`;
+
+  const summary = $("summary");
+  summary.classList.toggle("blocked", !!blocked);
+  summary.textContent = blocked ?? `About ${duration(n * SECONDS_PER_FRAME + 60)}`;
+  $("submit").disabled = !!blocked;
 }
-$("frames").addEventListener("input", updateEstimate);
-document.querySelectorAll(".preset").forEach((b) => b.addEventListener("click", () => { $("frames").value = b.dataset.frames; updateEstimate(); }));
-updateEstimate();
+
+$("frames").addEventListener("input", () => { updateSummary(); if (frameCount()) remembered.set("frames", frameCount()); });
+// The slider is logarithmic: 20, 500 and 2000 each get a usable stretch of track,
+// where a linear 1-20000 slider would squeeze them into its first few pixels.
+const SLIDER_MAX = 1000;
+const toSlider = (n) => Math.round(SLIDER_MAX * Math.log(n) / Math.log(MAX_FRAMES));
+function fromSlider(v) {
+  const x = Math.exp((v / SLIDER_MAX) * Math.log(MAX_FRAMES));
+  const step = x < 50 ? 1 : x < 200 ? 5 : x < 1000 ? 10 : x < 5000 ? 50 : 100;   // snap to round numbers
+  return Math.min(MAX_FRAMES, Math.max(1, Math.round(x / step) * step));
+}
+function setSlider(n) {
+  const slider = $("frames-slider");
+  slider.value = toSlider(n);
+  slider.style.setProperty("--fill", `${(100 * slider.value) / SLIDER_MAX}%`);
+  slider.setAttribute("aria-valuetext", plural(n, "image", "images"));
+}
+$("frames-slider").addEventListener("input", (e) => {
+  const n = fromSlider(+e.target.value);
+  $("frames").value = n;
+  e.target.style.setProperty("--fill", `${(100 * e.target.value) / SLIDER_MAX}%`);
+  e.target.setAttribute("aria-valuetext", plural(n, "image", "images"));
+  remembered.set("frames", n);
+  updateSummary();
+});
+document.querySelectorAll('input[name="task"]').forEach((r) => r.addEventListener("change", () => { remembered.set("task", task()); updateSummary(); }));
+
+const savedTask = document.querySelector(`input[name="task"][value="${remembered.get("task")}"]`);
+if (savedTask) savedTask.checked = true;
+if (remembered.get("frames")) $("frames").value = remembered.get("frames");
+updateSummary();
 
 // ---- submit ----------------------------------------------------------------
 
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const err = $("form-error");
-  err.hidden = true;
   const body = new FormData();
   parts.forEach((p) => { body.append("files", p.file); body.append("classes", p.name); });
-  body.append("num_frames", $("frames").value);
-  body.append("task", document.querySelector('input[name="task"]:checked').value);
+  body.append("num_frames", String(frameCount()));
+  body.append("task", task());
   $("submit").disabled = true;
-  $("submit").textContent = "Uploading…";
+  $("submit-label").textContent = "Uploading…";
   try {
     const res = await fetch("/api/jobs", { method: "POST", body });
     if (!res.ok) throw new Error((await res.json()).detail ?? `Upload failed (${res.status}).`);
     parts = [];
     renderBins();
     await refresh();
+    showView("gallery");
+    $("jobs").scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
+    snackbar("Dataset started");
   } catch (ex) {
-    err.textContent = ex.message === "Failed to fetch" ? "Can't reach the server. Check that it's still running." : ex.message;
-    err.hidden = false;
+    snackbar(ex.message === "Failed to fetch" ? "Can't reach the server" : ex.message);
     renderBins();
   } finally {
-    $("submit").textContent = "Generate dataset";
+    $("submit-label").textContent = "Generate dataset";
   }
 });
 
-// ---- jobs ------------------------------------------------------------------
+// ---- datasets ----------------------------------------------------------------
 
-function trackHtml(job) {
+function stepsHtml(job) {
   const current = STAGES.findIndex(([key]) => key === job.stage);
-  return STAGES.map(([key, label], i) => {
-    let cls = "";
-    let style = "";
-    if (job.status === "done" || i < current) cls = "done";
-    else if (i === current && job.status === "failed") cls = "failed";
-    else if (i === current && job.status === "running") {
-      cls = "active";
-      if (key === "generate") style = ` style="--p:${Math.round(100 * job.frames_done / job.num_frames)}%"`;
-    }
-    return `<li class="${cls}"${style}>${label}</li>`;
+  return STAGES.map(([, label], i) => {
+    let cls = "", mark = "";
+    if (job.status === "done" || i < current) { cls = "done"; mark = icon("check"); }
+    else if (i === current && job.status === "failed") { cls = "failed"; mark = icon("close"); }
+    else if (i === current && job.status === "running") cls = "active";
+    return `<li class="${cls}"><span class="dot">${mark}</span><span>${label}</span></li>`;
   }).join("");
 }
 
-function statusHtml(job) {
+function statusTag(job) {
   switch (job.status) {
-    case "queued": return `<p class="status">Waiting for the dataset ahead of it to finish.</p>`;
-    case "cancelled": return `<p class="status">Cancelled.</p>`;
-    case "failed": return `<p class="status bad">Stopped during ${esc(STAGES.find(([k]) => k === job.stage)?.[1].toLowerCase() ?? "setup")}. The end of the log:</p><pre class="log">${esc(job.error)}</pre>`;
-    case "done": return `<p class="status">Ready: ${job.num_frames} images across ${job.classes.length} ${job.classes.length === 1 ? "class" : "classes"}.</p>`;
+    case "queued": return `<span class="tag">${icon("schedule")}Queued</span>`;
+    case "running": return `<span class="tag busy">Running</span>`;
+    case "done": return `<span class="tag ok">${icon("check")}Ready</span>`;
+    case "failed": return `<span class="tag bad">${icon("error")}Failed</span>`;
+    default: return `<span class="tag">Cancelled</span>`;
+  }
+}
+
+function progressHtml(job) {
+  const steps = `<ol class="steps" aria-label="Progress">${stepsHtml(job)}</ol>`;
+  switch (job.status) {
+    case "done": case "cancelled": return "";
+    case "queued": return steps;
+    case "failed": return `${steps}<pre class="log">${esc(job.error)}</pre>`;
   }
   if (job.stage === "generate") {
-    const eta = job.eta_seconds == null ? "" : job.eta_seconds < 60 ? ", less than a minute left" : `, about ${duration(job.eta_seconds)} left`;
-    return `<p class="status">Rendered ${job.frames_done} of ${job.num_frames} images${eta}.</p>`;
+    const pct = Math.round(100 * job.frames_done / job.num_frames);
+    const eta = job.eta_seconds == null ? "" : `, ${job.eta_seconds < 60 ? "<1\u00a0min" : duration(job.eta_seconds)} left`;
+    return `${steps}<div class="progress" style="--p:${pct}%" role="progressbar" aria-label="Rendering" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"></div>
+      <p class="status body-s muted">${job.frames_done} / ${job.num_frames}${eta}</p>`;
   }
-  return `<p class="status">${{ convert: "Converting the CAD files to meshes.", dataset: "Tracing the labels.", package: "Drawing the preview and zipping the dataset." }[job.stage] ?? "Starting."}</p>`;
+  return `${steps}<div class="progress indeterminate" role="progressbar" aria-label="Working"></div>`;
 }
 
-function jobHtml(job) {
+// Each dataset is drawn in pieces, and a piece is only redrawn when it
+// changes: progress updates every couple of seconds, so redrawing whole
+// cards would throw away keyboard focus (on Cancel) and reload the preview.
+function jobPieces(job) {
   const active = job.status === "queued" || job.status === "running";
-  const started = new Date(job.created * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
-  const result = job.status !== "done" ? "" : `
-    <div class="result">
-      ${job.has_preview ? `<img src="/api/jobs/${job.id}/preview" alt="Sample images from each class with their labels outlined" loading="lazy">
-      <p class="caption">${TASK_TEXT[job.task].caption}</p>` : ""}
-      <a class="download" href="/api/jobs/${job.id}/download">Download dataset (.zip)</a>
-      <p class="usage">${TASK_TEXT[job.task].usage}</p>
-    </div>`;
-  return `
-    <article class="job">
-      <div class="job-head">
-        <div>
-          <h3 class="job-title">${esc(job.classes.join(", "))}</h3>
-          <p class="job-meta">${job.num_frames} images ${TASK_TEXT[job.task].meta}, started ${esc(started)}</p>
-        </div>
-        ${active ? `<button type="button" class="quiet" data-cancel="${job.id}">Cancel</button>` : ""}
+  const started = new Date(job.created * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return {
+    head: `
+      <div>
+        <h3 class="job-title title-m">${esc(job.classes.join(", "))}</h3>
+        <p class="job-meta body-s muted">${plural(job.num_frames, "image", "images")}, ${esc(started)}</p>
+        <div class="job-chips">${statusTag(job)}<span class="tag">${TASK_TEXT[job.task].name}</span></div>
       </div>
-      <ol class="track" aria-label="Progress">${trackHtml(job)}</ol>
-      ${statusHtml(job)}
-      ${result}
-    </article>`;
+      ${active ? `<button type="button" class="btn btn-text state" data-cancel="${job.id}">Cancel</button>` : ""}`,
+    progress: progressHtml(job),
+    actions: job.status !== "done" ? "" : `
+      <a class="btn btn-tonal state" href="/api/jobs/${job.id}/download">${icon("download")}Download${job.zip_bytes ? ` (${size(job.zip_bytes)})` : ""}</a>`,
+    shot: job.status !== "done" ? "" : !job.has_preview ? `<div class="shot none body-s muted">Nothing to preview</div>` : `
+      <a class="shot" href="/api/jobs/${job.id}/preview" target="_blank" rel="noopener" aria-label="Open the preview full size">
+        <img src="/api/jobs/${job.id}/preview" alt="${esc(TASK_TEXT[job.task].caption)}" loading="lazy">
+        <span class="open">${icon("open")}</span></a>`,
+  };
 }
+
+function renderJobs(jobs) {
+  const list = $("jobs");
+  const active = jobs.filter((j) => j.status === "queued" || j.status === "running").length;
+  $("nav-badge").hidden = !active;
+  $("nav-badge").textContent = active;
+  if (!jobs.length) return;
+  list.querySelector(".empty")?.remove();
+  jobs.forEach((job, index) => {
+    let card = list.querySelector(`[data-job="${job.id}"]`);
+    if (!card) {
+      card = document.createElement("article");
+      card.className = "job";
+      card.dataset.job = job.id;
+      card.innerHTML = `<div class="job-head" data-piece="head"></div><div data-piece="progress"></div>`
+        + `<div data-piece="actions"></div><div data-piece="shot"></div>`;
+    }
+    for (const [name, html] of Object.entries(jobPieces(job))) {
+      const piece = card.querySelector(`[data-piece="${name}"]`);
+      if (piece.dataset.html !== html) {
+        piece.innerHTML = html;
+        piece.dataset.html = html;
+        piece.hidden = !html;
+      }
+    }
+    card.classList.toggle("has-result", job.status === "done");
+    if (list.children[index] !== card) list.insertBefore(card, list.children[index] ?? null);
+  });
+}
+
+$("jobs").addEventListener("click", async (e) => {
+  const button = e.target.closest("[data-cancel]");
+  if (!button) return;
+  button.disabled = true;
+  button.textContent = "Cancelling…";
+  await fetch(`/api/jobs/${button.dataset.cancel}/cancel`, { method: "POST" });
+  refresh();
+});
+
+// ---- compact windows: one pane at a time -------------------------------------------
+
+function showView(view) {
+  document.body.dataset.view = view;
+  document.querySelectorAll(".nav-item").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.view === view)));
+}
+document.querySelectorAll(".nav-item").forEach((t) => t.addEventListener("click", () => showView(t.dataset.view)));
 
 let timer = null;
+let waitingOn = new Set();
 async function refresh() {
+  clearTimeout(timer);
   let jobs;
   try {
     jobs = await (await fetch("/api/jobs")).json();
@@ -451,14 +819,15 @@ async function refresh() {
     timer = setTimeout(refresh, 5000);
     return;
   }
-  if (jobs.length) $("jobs").innerHTML = jobs.map(jobHtml).join("");
-  document.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", async () => {
-    b.disabled = true;
-    await fetch(`/api/jobs/${b.dataset.cancel}/cancel`, { method: "POST" });
-    refresh();
-  }));
-  clearTimeout(timer);
-  if (jobs.some((j) => j.status === "queued" || j.status === "running")) timer = setTimeout(refresh, 2000);
+  // Tell the user when a dataset they were waiting on finishes.
+  for (const job of jobs) {
+    if (!waitingOn.has(job.id)) continue;
+    if (job.status === "done") snackbar(`Ready: ${job.classes.join(", ")}`, { label: "Download", run: () => { location.href = `/api/jobs/${job.id}/download`; } });
+    if (job.status === "failed") snackbar(`Failed: ${job.classes.join(", ")}`);
+  }
+  waitingOn = new Set(jobs.filter((j) => j.status === "queued" || j.status === "running").map((j) => j.id));
+  renderJobs(jobs);
+  if (waitingOn.size) timer = setTimeout(refresh, 2000);
 }
 refresh();
 </script>

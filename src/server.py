@@ -68,6 +68,7 @@ class Job:
         data = asdict(self)
         data["eta_seconds"] = self.eta()
         data["has_preview"] = (self.dir / "workspace" / "preview" / "all.png").exists()
+        data["zip_bytes"] = self.zip_path.stat().st_size if self.status == "done" else None
         return data
 
     def eta(self):
@@ -90,7 +91,7 @@ jobs: dict = {}
 pending: queue.Queue = queue.Queue()
 current_process: dict = {}  # job id -> running subprocess, for cancelling
 
-app = FastAPI(title="Synthetic dataset generator")
+app = FastAPI(title="Blender Synthetic Data")
 
 
 def _log_tail(log_path: Path, lines: int = 25) -> str:
@@ -268,7 +269,16 @@ def main():
 
     threading.Thread(target=_worker, daemon=True).start()
     print(f"Open http://{args.host}:{args.port} in your browser.")
-    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+    # Jobs run in their own process group (so Cancel can stop them), which
+    # also means they'd outlive the server - stop them with it. Ctrl+C lands
+    # in `finally`; SIGTERM needs a handler, since uvicorn re-raises it after
+    # shutting down, which would otherwise end the process on the spot.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    try:
+        uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+    finally:
+        for proc in list(current_process.values()):
+            _kill_tree(proc)
 
 
 if __name__ == "__main__":
