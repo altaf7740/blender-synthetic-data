@@ -1,7 +1,8 @@
 """
 Visual review of a built dataset: for each class, picks N images containing
 it and draws the YOLO labels (outlines or boxes) over them exactly as
-training will read them. The class being reviewed is filled and outlined thickly; other labelled
+training will read them. For a classification dataset it shows N of each
+class's crops instead. The class being reviewed is filled and outlined thickly; other labelled
 parts are outlined thinly.
 
 Writes to <output-dir>/preview/:
@@ -21,7 +22,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from synth_pipeline.utils.yolo_dataset import DATASET_DIR
+from synth_pipeline.utils.yolo_dataset import DATASET_DIR, read_task
 
 _TILE = 384  # px, contact-sheet tile size
 _PALETTE = [(60, 60, 255), (60, 220, 60), (255, 140, 40), (40, 220, 255), (220, 60, 220), (255, 255, 60)]  # BGR
@@ -86,9 +87,10 @@ def main():
     args = parse_args()
     class_names = sorted(json.loads((args.output_dir / "parts_manifest.json").read_text()))
     dataset_dir = args.output_dir / DATASET_DIR
-    samples = load_labels(dataset_dir)
-    if not samples:
-        raise FileNotFoundError(f"No labels in {dataset_dir} - run build_yolo_dataset.py first (stage 3).")
+    if not (dataset_dir / "data.yaml").exists():
+        raise FileNotFoundError(f"No dataset in {dataset_dir} - run build_yolo_dataset.py first (stage 3).")
+    classify = read_task(dataset_dir) == "classify"
+    samples = [] if classify else load_labels(dataset_dir)
 
     preview_dir = args.output_dir / "preview"
     shutil.rmtree(preview_dir, ignore_errors=True)
@@ -96,11 +98,17 @@ def main():
 
     sheets = []
     for idx, name in enumerate(class_names):
-        chosen = [(p, polys) for p, polys in samples if any(c == idx for c, _ in polys)][: args.per_class]
+        if classify:  # the crops themselves are what training sees
+            crops = sorted((dataset_dir / "train" / name).glob("*.jpg")) + sorted((dataset_dir / "val" / name).glob("*.jpg"))
+            chosen = [(p, None) for p in crops[: args.per_class]]
+        else:
+            chosen = [(p, polys) for p, polys in samples if any(c == idx for c, _ in polys)][: args.per_class]
         (preview_dir / name).mkdir()
         annotated = []
         for image_path, polys in chosen:
-            img = annotate(cv2.imread(str(image_path)), polys, idx, class_names)
+            img = cv2.imread(str(image_path))
+            if not classify:
+                img = annotate(img, polys, idx, class_names)
             cv2.imwrite(str(preview_dir / name / image_path.name), img)
             annotated.append(img)
         title = f"{name}: {len(chosen)} of {args.per_class} requested"

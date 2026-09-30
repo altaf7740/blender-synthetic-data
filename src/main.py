@@ -12,7 +12,7 @@ Every stage runs in the uv venv (Blender is the `bpy` package there), each
 in its own process, so a failing stage stops the pipeline with a nonzero exit:
   1. convert_assets.py      - STEP -> GLB (OpenCascade)
   2. generate_dataset.py    - GLB -> rendered frames + masks (Blender)
-  3. build_yolo_dataset.py  - masks -> YOLO labels (--task segment|detect)
+  3. build_yolo_dataset.py  - masks -> YOLO labels (--task segment|detect|classify)
   4. train.py               - YOLO26 training, for the dataset's task
 
 Usage (from the repo root):
@@ -75,7 +75,7 @@ def main():
     parser.add_argument("--num-frames", type=int, help="Frames to render (default: pyproject.toml's num_frames).")
     parser.add_argument("--textures-dir", type=Path, help="Folder of photos to mix into ground/backdrop textures.")
     parser.add_argument(
-        "--task", choices=TASKS, default="segment", help="Label type: segment (outlines, default) or detect (boxes)."
+        "--task", choices=TASKS, default="segment", help="Label type: segment (outlines, default), detect (boxes) or classify (part crops)."
     )
     args = parser.parse_args()
 

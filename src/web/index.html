@@ -234,6 +234,7 @@ pre.log {
         <div class="choices">
           <label class="choice"><input type="radio" name="task" value="segment" checked><span>Outlines<small>for segmentation</small></span></label>
           <label class="choice"><input type="radio" name="task" value="detect"><span>Boxes<small>for detection</small></span></label>
+          <label class="choice"><input type="radio" name="task" value="classify"><span>Crops<small>for classification</small></span></label>
         </div>
       </fieldset>
       <button type="submit" class="primary" id="submit" disabled>Generate dataset</button>
@@ -251,6 +252,12 @@ pre.log {
 const SECONDS_PER_FRAME = 2;   // measured on an M2 Pro GPU at the default settings
 const CLASS_NAME = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/;
 const CAD = /\.(step|stp|zip)$/i;
+// Per label type: what a dataset holds, and how to train on the unzipped folder.
+const TASK_TEXT = {
+  segment: { meta: "labelled with outlines", caption: "A few images per class, with the labels drawn on exactly as training will read them.", usage: "YOLO format with outline labels. Train a segmentation model such as <code>yolo26n-seg.pt</code>, pointing <code>data=</code> at the unzipped <code>data.yaml</code>." },
+  detect: { meta: "labelled with boxes", caption: "A few images per class, with the labels drawn on exactly as training will read them.", usage: "YOLO format with box labels. Train a detection model such as <code>yolo26n.pt</code>, pointing <code>data=</code> at the unzipped <code>data.yaml</code>." },
+  classify: { meta: "cut into part crops", caption: "A few crops per class, exactly as training will see them.", usage: "One folder of cropped parts per class, split into <code>train/</code> and <code>val/</code>. Train a classification model such as <code>yolo26n-cls.pt</code>, pointing <code>data=</code> at the unzipped <code>yolo_dataset</code> folder." },
+};
 const STAGES = [["convert", "Convert"], ["generate", "Render"], ["dataset", "Label"], ["package", "Package"]];
 
 const $ = (id) => document.getElementById(id);
@@ -416,18 +423,16 @@ function jobHtml(job) {
   const result = job.status !== "done" ? "" : `
     <div class="result">
       ${job.has_preview ? `<img src="/api/jobs/${job.id}/preview" alt="Sample images from each class with their labels outlined" loading="lazy">
-      <p class="caption">A few images per class, with the labels drawn on exactly as training will read them.</p>` : ""}
+      <p class="caption">${TASK_TEXT[job.task].caption}</p>` : ""}
       <a class="download" href="/api/jobs/${job.id}/download">Download dataset (.zip)</a>
-      <p class="usage">${job.task === "detect"
-        ? "YOLO format with box labels. Train a detection model such as <code>yolo26n.pt</code>"
-        : "YOLO format with outline labels. Train a segmentation model such as <code>yolo26n-seg.pt</code>"}, pointing <code>data=</code> at the unzipped <code>data.yaml</code>.</p>
+      <p class="usage">${TASK_TEXT[job.task].usage}</p>
     </div>`;
   return `
     <article class="job">
       <div class="job-head">
         <div>
           <h3 class="job-title">${esc(job.classes.join(", "))}</h3>
-          <p class="job-meta">${job.num_frames} images with ${job.task === "detect" ? "boxes" : "outlines"}, started ${esc(started)}</p>
+          <p class="job-meta">${job.num_frames} images ${TASK_TEXT[job.task].meta}, started ${esc(started)}</p>
         </div>
         ${active ? `<button type="button" class="quiet" data-cancel="${job.id}">Cancel</button>` : ""}
       </div>

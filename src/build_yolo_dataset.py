@@ -1,11 +1,12 @@
 """
 Stage 3: convert the rendered frames and instance masks (stage 2) into an
-Ultralytics YOLO dataset, with either outline labels (--task segment) or
-box labels (--task detect). Classes are read from parts_manifest.json
-(written in stage 1) rather than declared again here.
+Ultralytics YOLO dataset: frames with outline labels (--task segment) or
+box labels (--task detect), or a folder of cropped parts per class
+(--task classify). Classes are read from parts_manifest.json (written in
+stage 1) rather than declared again here.
 
 Run from the repo root:
-    uv run python src/build_yolo_dataset.py --output-dir <folder> [--task segment|detect]
+    uv run python src/build_yolo_dataset.py --output-dir <folder> [--task segment|detect|classify]
 """
 
 import argparse
@@ -21,6 +22,7 @@ from synth_pipeline import config
 from synth_pipeline.utils.labels import (
     frame_to_yolo_box_lines,
     frame_to_yolo_seg_lines,
+    instance_crops,
     load_instance_class_map,
     load_instance_ids,
 )
@@ -62,7 +64,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path, help="Same one passed to earlier stages.")
     parser.add_argument(
-        "--task", choices=TASKS, default="segment", help="Label type: segment (outlines) or detect (boxes)."
+        "--task",
+        choices=TASKS,
+        default="segment",
+        help="Label type: segment (outlines), detect (boxes) or classify (one folder of part crops per class).",
     )
     args = parser.parse_args()
     args.output_dir = args.output_dir.resolve()
@@ -82,7 +87,7 @@ def main():
     # Start clean - images/labels left over from a previous, larger run would
     # otherwise stay in train/val alongside this run's.
     shutil.rmtree(dst, ignore_errors=True)
-    make_dataset_dirs(dst)
+    make_dataset_dirs(dst, args.task, class_names)
 
     # Stage 2 writes flat files directly in src, one set per frame:
     # rgb_NNNN.png, mask_NNNN.png and mask_NNNN.json. Each frame's mask and
@@ -97,6 +102,7 @@ def main():
     seen_classes = set()
     rng = np.random.default_rng(config.SEED)
     stats = {name: [] for name in class_names}  # per class: pixel area of each labelled instance
+    crop_counts = {split: dict.fromkeys(class_names, 0) for split in ("train", "val")}
 
     for i, img_path in enumerate(rgb_files):
         frame = img_path.stem.removeprefix("rgb_")
@@ -112,20 +118,25 @@ def main():
         w, h = img.size
         # Validation images stay clean, so val metrics stay comparable between runs.
         out = camera_effects(img, rng) if split == "train" else img.convert("RGB")
-        out.save(dst / "images" / split / img_path.name)
 
         instance_ids = load_instance_ids(mask_path)
         instance_class_map = load_instance_class_map(mapping_path)
         seen_classes.update(instance_class_map.values())
-
-        lines = to_lines(instance_ids, instance_class_map, class_to_idx, w, h)
         for instance_id, name in instance_class_map.items():
             area = int((instance_ids == instance_id).sum())
             if area and name in stats:
                 stats[name].append(area)
 
-        label_txt = dst / "labels" / split / (img_path.stem + ".txt")
-        label_txt.write_text("\n".join(lines))
+        if args.task == "classify":
+            # Crops come from the camera-degraded image, so they get the same effects.
+            for k, (name, crop) in enumerate(instance_crops(np.asarray(out), instance_ids, instance_class_map)):
+                if name in class_to_idx:
+                    Image.fromarray(crop).save(dst / split / name / f"{img_path.stem}_{k}.jpg", quality=95)
+                    crop_counts[split][name] += 1
+        else:
+            out.save(dst / "images" / split / img_path.name)
+            lines = to_lines(instance_ids, instance_class_map, class_to_idx, w, h)
+            (dst / "labels" / split / (img_path.stem + ".txt")).write_text("\n".join(lines))
 
     unknown = seen_classes - set(class_to_idx)
     if unknown:
@@ -134,8 +145,9 @@ def main():
     write_data_yaml(dst, class_names, args.task)
 
     n_val = num_val(total, config.VAL_SPLIT)
-    print(f"Done. {total - n_val} train / {n_val} val images written to {dst}")
-    print(f"Classes: {class_names}, labels: {'outlines' if args.task == 'segment' else 'boxes'}")
+    label_type = {"segment": "outlines", "detect": "boxes", "classify": "part crops"}[args.task]
+    print(f"Done. {total - n_val} train / {n_val} val frames written to {dst} as {label_type}.")
+    print(f"Classes: {class_names}")
     # A quick health check: a class that is rare or mostly tiny will train poorly.
     print(f"\n{'class':<20}{'instances':>10}{'median px':>11}{'< 20x20':>9}")
     warnings = []
@@ -147,6 +159,13 @@ def main():
             warnings.append(f"{name}: only {len(areas)} instances - raise num_frames or instances_per_class.")
         if tiny > 0.25:
             warnings.append(f"{name}: {tiny:.0%} of instances are under 20x20 px - raise camera_target_pixels.")
+    if args.task == "classify":
+        print(f"\n{'class':<20}{'train crops':>12}{'val crops':>10}")
+        for name in class_names:
+            n_train, n_val_crops = crop_counts["train"][name], crop_counts["val"][name]
+            print(f"{name:<20}{n_train:>12}{n_val_crops:>10}")
+            if n_train == 0 or n_val_crops == 0:
+                warnings.append(f"{name}: no {'training' if n_train == 0 else 'validation'} crops - render more frames.")
     for w in warnings:
         print(f"WARNING: {w}")
 

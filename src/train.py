@@ -1,6 +1,6 @@
 """
-Stage 4: train YOLO26 on the dataset built in stage 3 - segmentation or
-detection, whichever label type the dataset was built with.
+Stage 4: train YOLO26 on the dataset built in stage 3 - segmentation,
+detection or classification, whichever the dataset was built for.
 
 Run from the repo root:
     uv run python src/train.py --output-dir <folder>
@@ -26,11 +26,11 @@ def parse_args():
     parser.add_argument("--output-dir", required=True, type=Path, help="Same one passed to earlier stages.")
     parser.add_argument(
         "--model",
-        help="Pretrained weights. Default: yolo26n-seg.pt for a segmentation dataset, yolo26n.pt for detection. "
-        "Larger ones (yolo26s/m/l/x) are more accurate and slower.",
+        help="Pretrained weights. Default: yolo26n-seg.pt for a segmentation dataset, yolo26n.pt for detection, "
+        "yolo26n-cls.pt for classification. Larger ones (yolo26s/m/l/x) are more accurate and slower.",
     )
     parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--imgsz", type=int, default=640)
+    parser.add_argument("--imgsz", type=int, help="Training image size. Default: 224 for classification, else 640.")
     parser.add_argument("--batch", type=int, default=16)
     parser.add_argument("--device", help="Training device: e.g. 0 (first CUDA GPU), mps (Apple GPU), cpu. Default: auto.")
     parser.add_argument(
@@ -54,9 +54,10 @@ if __name__ == "__main__":
     model = YOLO(args.model or TASKS[task])  # COCO-pretrained
 
     model.train(
-        data=str(dataset_dir / "data.yaml"),
+        # Classification reads the class folders directly; the others read data.yaml.
+        data=str(dataset_dir if task == "classify" else dataset_dir / "data.yaml"),
         epochs=args.epochs,
-        imgsz=args.imgsz,
+        imgsz=args.imgsz or (224 if task == "classify" else 640),
         batch=args.batch,
         project=str(args.output_dir / "runs"),
         name=args.name or task,

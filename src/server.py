@@ -1,6 +1,6 @@
 """
 Web UI for the pipeline: drop STEP files in the browser, name a class for
-each, choose segmentation or detection labels, and get the YOLO dataset
+each, choose segmentation, detection or classification, and get the YOLO dataset
 back as a zip.
 
 Each submitted job gets its own folder under --jobs-dir with the usual input
