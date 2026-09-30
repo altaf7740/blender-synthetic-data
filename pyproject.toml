@@ -5,8 +5,8 @@ description = "CAD (STEP) to instance-segmentation training data via Blender (bp
 # Pinned to the Python that the bpy wheel is built for (Blender 5.x = 3.13).
 requires-python = "==3.13.*"
 dependencies = [
-    "bpy>=5.0",  # Blender itself, as a Python module - no separate Blender install
-    "cascadio",  # OpenCascade STEP -> GLB, so Blender can import the parts
+    "bpy>=5.0", # Blender itself, as a Python module - no separate Blender install
+    "cascadio", # OpenCascade STEP -> GLB, so Blender can import the parts
     "numpy",
     "pillow",
     "opencv-python",
@@ -14,6 +14,9 @@ dependencies = [
     "ultralytics",
     "torch",
     "torchvision",
+    "fastapi>=0.142.2",
+    "uvicorn>=0.54.0",
+    "python-multipart>=0.0.32",
 ]
 
 # This repo is a set of top-level scripts + a synth_pipeline package imported

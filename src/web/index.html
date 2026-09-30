@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dataset bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --zinc: #e7eae8;        /* page: zinc-plated sheet */
+  --panel: #f6f7f6;
+  --ink: #1a211f;
+  --ink-soft: #56615d;
+  --rule: #c7cecb;
+  --mat: #2f5d4f;         /* anti-static work mat */
+  --mat-deep: #264d41;
+  --mat-ink: #e4efe9;
+  --brass: #a8781a;       /* yellow-zinc */
+  --brass-soft: #f3e6c4;
+  --danger: #a3372b;
+  --bin: #eef1ef;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --zinc: #151b19; --panel: #1c2421; --ink: #e2e8e5; --ink-soft: #9aa7a2; --rule: #33403b;
+    --mat: #244a3e; --mat-deep: #1d3d33; --mat-ink: #d7e7df;
+    --brass: #d8a53f; --brass-soft: #3a3020; --danger: #e07a6c; --bin: #26302c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --zinc: #151b19; --panel: #1c2421; --ink: #e2e8e5; --ink-soft: #9aa7a2; --rule: #33403b;
+  --mat: #244a3e; --mat-deep: #1d3d33; --mat-ink: #d7e7df;
+  --brass: #d8a53f; --brass-soft: #3a3020; --danger: #e07a6c; --bin: #26302c;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--zinc);
+  color: var(--ink);
+  font: 400 16px/1.5 "Archivo", system-ui, sans-serif;
+  font-stretch: 100%;
+}
+main { max-width: 860px; margin: 0 auto; padding: 56px 16px 96px; }
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.6rem, 8vw, 4.2rem);
+  line-height: .95;
+  font-weight: 750;
+  font-stretch: 68%;
+  letter-spacing: -.01em;
+}
+.lede { margin: 14px 0 36px; max-width: 34em; color: var(--ink-soft); font-size: 1.08rem; }
+h2 { margin: 0 0 14px; font-size: 1.35rem; font-weight: 700; font-stretch: 75%; }
+
+/* ---- the tray: the one loud thing on the page ---- */
+.tray {
+  position: relative;
+  border-radius: 14px;
+  background-color: var(--mat);
+  background-image: radial-gradient(circle, rgba(255,255,255,.07) 1.2px, transparent 1.6px);
+  background-size: 14px 14px;
+  color: var(--mat-ink);
+  padding: 20px;
+  outline: 2px dashed transparent;
+  outline-offset: -10px;
+  transition: outline-color .15s, background-color .15s;
+}
+.tray.over { outline-color: var(--brass); background-color: var(--mat-deep); }
+.drop {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: 26px 22px;
+  border: 1.5px dashed rgba(228,239,233,.45);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.drop strong { font-size: 1.5rem; font-weight: 700; font-stretch: 72%; line-height: 1.1; }
+.drop span { color: rgba(228,239,233,.78); }
+.drop:focus-within { border-color: var(--brass); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.tray.has-bins .drop { padding: 14px 18px; flex-direction: row; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.tray.has-bins .drop strong { font-size: 1.1rem; }
+
+.bins { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tray.has-bins .bins { margin-bottom: 14px; }
+.bin {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center;
+  background: var(--bin); color: var(--ink);
+  border-radius: 8px; padding: 10px 12px 10px 16px;
+  box-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+.bin input {
+  width: 100%; min-width: 0;
+  font: inherit; font-size: 1.3rem; font-weight: 650; font-stretch: 70%;
+  color: var(--ink); background: transparent;
+  border: 0; border-bottom: 1.5px solid var(--rule); border-radius: 0; padding: 2px 0;
+}
+.bin input:focus { outline: none; border-bottom-color: var(--brass); }
+.bin input[aria-invalid="true"] { border-bottom-color: var(--danger); }
+.bin .file { grid-column: 1; font-size: .85rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+.bin .file.bad { color: var(--danger); }
+.bin button { grid-row: 1 / span 2; grid-column: 2; }
+
+/* ---- controls ---- */
+.run { display: flex; flex-wrap: wrap; align-items: end; gap: 18px 28px; margin: 22px 0 0; }
+.field label { display: block; font-weight: 600; margin-bottom: 6px; }
+.frames { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.frames input {
+  width: 7.5em; font: inherit; font-size: 1.05rem; padding: 8px 10px;
+  background: var(--panel); color: var(--ink); border: 1.5px solid var(--rule); border-radius: 6px;
+}
+.preset {
+  font: inherit; font-size: .9rem; padding: 7px 10px; cursor: pointer;
+  background: transparent; color: var(--ink-soft); border: 1.5px solid var(--rule); border-radius: 6px;
+}
+.preset[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
+.estimate { margin: 6px 0 0; font-size: .88rem; color: var(--ink-soft); }
+
+.primary {
+  font: inherit; font-weight: 700; font-size: 1.05rem;
+  padding: 12px 22px; border: 0; border-radius: 8px; cursor: pointer;
+  background: var(--ink); color: var(--zinc);
+}
+.primary:disabled { opacity: .4; cursor: not-allowed; }
+.quiet {
+  font: inherit; font-size: .9rem; padding: 6px 10px; cursor: pointer;
+  background: transparent; color: var(--ink-soft); border: 1.5px solid var(--rule); border-radius: 6px;
+}
+.quiet:hover { color: var(--ink); border-color: var(--ink-soft); }
+.form-error { margin: 12px 0 0; color: var(--danger); font-weight: 600; }
+:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+
+/* ---- jobs ---- */
+.jobs { margin-top: 64px; }
+.empty { color: var(--ink-soft); margin: 0; }
+.job { border-top: 1.5px solid var(--rule); padding: 22px 0 26px; }
+.job-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.job-title { margin: 0; font-size: 1.2rem; font-weight: 650; font-stretch: 72%; }
+.job-meta { margin: 2px 0 0; color: var(--ink-soft); font-size: .9rem; }
+
+.track { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0; margin: 18px 0 10px; counter-reset: step; }
+.track li { counter-increment: step; font-size: .88rem; color: var(--ink-soft); }
+.track li::before {
+  content: counter(step) "  "; font-weight: 700;
+}
+.track li::after {
+  content: ""; display: block; height: 5px; margin-top: 6px; border-radius: 3px; background: var(--rule);
+}
+.track li.done { color: var(--ink); }
+.track li.done::after { background: var(--mat); }
+.track li.active { color: var(--ink); font-weight: 600; }
+.track li.active::after { background: linear-gradient(90deg, var(--brass) var(--p, 35%), var(--rule) var(--p, 35%)); }
+.track li.failed { color: var(--danger); font-weight: 600; }
+.track li.failed::after { background: var(--danger); }
+
+.status { margin: 0; font-size: .95rem; }
+.status.bad { color: var(--danger); font-weight: 600; }
+pre.log {
+  margin: 10px 0 0; padding: 12px; max-height: 220px; overflow: auto;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+  font-size: .78rem; line-height: 1.45; white-space: pre-wrap;
+}
+.result { margin-top: 16px; }
+.result img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--rule); }
+.result .caption { font-size: .85rem; color: var(--ink-soft); margin: 8px 0 14px; }
+.download {
+  display: inline-block; text-decoration: none;
+  font-weight: 700; padding: 11px 20px; border-radius: 8px;
+  background: var(--brass); color: #1a1406;
+}
+.usage { margin: 12px 0 0; font-size: .9rem; color: var(--ink-soft); max-width: 44em; }
+.usage code { font-size: .85em; background: var(--panel); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--rule); }
+
+@media (max-width: 560px) {
+  main { padding-top: 36px; }
+  .track li { font-size: .78rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>Dataset bench</h1>
+  <p class="lede">Drop the STEP files of your parts. Each part is rendered thousands of ways and labelled pixel by pixel, and you get back a YOLO dataset ready to train on.</p>
+
+  <form id="form" novalidate>
+    <div class="tray" id="tray">
+      <ul class="bins" id="bins" aria-label="Parts in this dataset"></ul>
+      <label class="drop" id="drop">
+        <input type="file" id="picker" multiple accept=".step,.stp,.zip">
+        <strong id="drop-title">Drop STEP files here</strong>
+        <span id="drop-hint">One file per part: .step, .stp, or a .zip containing one. Or click to choose files.</span>
+      </label>
+    </div>
+
+    <div class="run">
+      <div class="field">
+        <label for="frames">Images to render</label>
+        <div class="frames">
+          <input type="number" id="frames" min="1" max="20000" value="2000" inputmode="numeric">
+          <button type="button" class="preset" data-frames="20">20 to test</button>
+          <button type="button" class="preset" data-frames="500">500</button>
+          <button type="button" class="preset" data-frames="2000">2000</button>
+        </div>
+        <p class="estimate" id="estimate"></p>
+      </div>
+      <button type="submit" class="primary" id="submit" disabled>Generate dataset</button>
+    </div>
+    <p class="form-error" id="form-error" role="alert" hidden></p>
+  </form>
+
+  <section class="jobs" aria-labelledby="jobs-title">
+    <h2 id="jobs-title">Datasets</h2>
+    <div id="jobs"><p class="empty">Nothing generated yet. Datasets you start appear here, with a preview and a download once they're ready.</p></div>
+  </section>
+</main>
+
+<script>
+const SECONDS_PER_FRAME = 2;   // measured on an M2 Pro GPU at the default settings
+const CLASS_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+const CAD = /\.(step|stp|zip)$/i;
+const STAGES = [["convert", "Convert"], ["generate", "Render"], ["dataset", "Label"], ["package", "Package"]];
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+let parts = [];  // {file, name}
+
+function classNameFrom(filename) {
+  let name = filename.replace(/\.[^.]+$/, "").normalize("NFD").replace(/[̀-ͯ]/g, "")  // Parça -> Parca
+    .toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return (name || "part").slice(0, 64);
+}
+
+function duration(seconds) {
+  const m = Math.round(seconds / 60);
+  if (m < 1) return "under a minute";
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)} h ${m % 60} min`;
+}
+
+// ---- tray ----------------------------------------------------------------
+
+function addFiles(files) {
+  for (const file of files) parts.push({ file, name: classNameFrom(file.name) });
+  renderBins();
+}
+
+function problems() {
+  const out = [];
+  const seen = new Map();
+  parts.forEach((p, i) => {
+    if (!CAD.test(p.file.name)) out.push([i, "file", `${p.file.name} isn't a STEP file.`]);
+    if (!CLASS_NAME.test(p.name)) out.push([i, "name", "Use letters, digits, - and _, starting with a letter or digit."]);
+    else if (seen.has(p.name)) out.push([i, "name", "Another part already has this name."]);
+    seen.set(p.name, i);
+  });
+  return out;
+}
+
+function renderBins() {
+  const bins = $("bins");
+  bins.innerHTML = "";
+  const issues = problems();
+  parts.forEach((p, i) => {
+    const nameIssue = issues.find(([j, kind]) => j === i && kind === "name");
+    const fileIssue = issues.find(([j, kind]) => j === i && kind === "file");
+    const li = document.createElement("li");
+    li.className = "bin";
+    li.innerHTML = `
+      <input aria-label="Class name for ${esc(p.file.name)}" value="${esc(p.name)}" spellcheck="false"
+             ${nameIssue ? 'aria-invalid="true"' : ""}>
+      <span class="file ${nameIssue || fileIssue ? "bad" : ""}">${esc((fileIssue || nameIssue)?.[2] ?? `${p.file.name}, ${(p.file.size / 1024).toFixed(0)} KB`)}</span>
+      <button type="button" class="quiet">Remove</button>`;
+    li.querySelector("input").addEventListener("change", (e) => { p.name = e.target.value.trim(); renderBins(); });
+    li.querySelector("button").addEventListener("click", () => { parts.splice(i, 1); renderBins(); });
+    bins.appendChild(li);
+  });
+  $("tray").classList.toggle("has-bins", parts.length > 0);
+  $("drop-title").textContent = parts.length ? "Add more parts" : "Drop STEP files here";
+  $("drop-hint").textContent = parts.length
+    ? "Each row is one class. Edit a name to change how it's labelled."
+    : "One file per part: .step, .stp, or a .zip containing one. Or click to choose files.";
+  $("submit").disabled = parts.length === 0 || issues.length > 0;
+}
+
+const tray = $("tray");
+["dragenter", "dragover"].forEach((t) => tray.addEventListener(t, (e) => { e.preventDefault(); tray.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => tray.addEventListener(t, (e) => { e.preventDefault(); if (t === "drop" || !tray.contains(e.relatedTarget)) tray.classList.remove("over"); }));
+tray.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
+$("picker").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
+
+// ---- frames ----------------------------------------------------------------
+
+function updateEstimate() {
+  const n = parseInt($("frames").value, 10) || 0;
+  document.querySelectorAll(".preset").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.frames === n)));
+  $("estimate").textContent = n > 0
+    ? `Takes about ${duration(n * SECONDS_PER_FRAME + 60)} on a recent GPU. 20 is enough to check the parts look right; train on 2000 or more.`
+    : "Enter how many images to render.";
+}
+$("frames").addEventListener("input", updateEstimate);
+document.querySelectorAll(".preset").forEach((b) => b.addEventListener("click", () => { $("frames").value = b.dataset.frames; updateEstimate(); }));
+updateEstimate();
+
+// ---- submit ----------------------------------------------------------------
+
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = $("form-error");
+  err.hidden = true;
+  const body = new FormData();
+  parts.forEach((p) => { body.append("files", p.file); body.append("classes", p.name); });
+  body.append("num_frames", $("frames").value);
+  $("submit").disabled = true;
+  $("submit").textContent = "Uploading…";
+  try {
+    const res = await fetch("/api/jobs", { method: "POST", body });
+    if (!res.ok) throw new Error((await res.json()).detail ?? `Upload failed (${res.status}).`);
+    parts = [];
+    renderBins();
+    await refresh();
+  } catch (ex) {
+    err.textContent = ex.message === "Failed to fetch" ? "Can't reach the server. Check that it's still running." : ex.message;
+    err.hidden = false;
+    renderBins();
+  } finally {
+    $("submit").textContent = "Generate dataset";
+  }
+});
+
+// ---- jobs ------------------------------------------------------------------
+
+function trackHtml(job) {
+  const current = STAGES.findIndex(([key]) => key === job.stage);
+  return STAGES.map(([key, label], i) => {
+    let cls = "";
+    let style = "";
+    if (job.status === "done" || i < current) cls = "done";
+    else if (i === current && job.status === "failed") cls = "failed";
+    else if (i === current && job.status === "running") {
+      cls = "active";
+      if (key === "generate") style = ` style="--p:${Math.round(100 * job.frames_done / job.num_frames)}%"`;
+    }
+    return `<li class="${cls}"${style}>${label}</li>`;
+  }).join("");
+}
+
+function statusHtml(job) {
+  switch (job.status) {
+    case "queued": return `<p class="status">Waiting for the dataset ahead of it to finish.</p>`;
+    case "cancelled": return `<p class="status">Cancelled.</p>`;
+    case "failed": return `<p class="status bad">Stopped during ${esc(STAGES.find(([k]) => k === job.stage)?.[1].toLowerCase() ?? "setup")}. The end of the log:</p><pre class="log">${esc(job.error)}</pre>`;
+    case "done": return `<p class="status">Ready: ${job.num_frames} images across ${job.classes.length} ${job.classes.length === 1 ? "class" : "classes"}.</p>`;
+  }
+  if (job.stage === "generate") {
+    const eta = job.eta_seconds == null ? "" : job.eta_seconds < 60 ? ", less than a minute left" : `, about ${duration(job.eta_seconds)} left`;
+    return `<p class="status">Rendered ${job.frames_done} of ${job.num_frames} images${eta}.</p>`;
+  }
+  return `<p class="status">${{ convert: "Converting the CAD files to meshes.", dataset: "Tracing the labels.", package: "Drawing the preview and zipping the dataset." }[job.stage] ?? "Starting."}</p>`;
+}
+
+function jobHtml(job) {
+  const active = job.status === "queued" || job.status === "running";
+  const started = new Date(job.created * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  const result = job.status !== "done" ? "" : `
+    <div class="result">
+      ${job.has_preview ? `<img src="/api/jobs/${job.id}/preview" alt="Sample images from each class with their labels outlined" loading="lazy">
+      <p class="caption">A few images per class, with the labels drawn on exactly as training will read them.</p>` : ""}
+      <a class="download" href="/api/jobs/${job.id}/download">Download dataset (.zip)</a>
+      <p class="usage">YOLO format with outline labels. Train segmentation with <code>yolo26n-seg.pt</code> or detection with <code>yolo26n.pt</code>, pointing <code>data=</code> at the unzipped <code>data.yaml</code>.</p>
+    </div>`;
+  return `
+    <article class="job">
+      <div class="job-head">
+        <div>
+          <h3 class="job-title">${esc(job.classes.join(", "))}</h3>
+          <p class="job-meta">${job.num_frames} images, started ${esc(started)}</p>
+        </div>
+        ${active ? `<button type="button" class="quiet" data-cancel="${job.id}">Cancel</button>` : ""}
+      </div>
+      <ol class="track" aria-label="Progress">${trackHtml(job)}</ol>
+      ${statusHtml(job)}
+      ${result}
+    </article>`;
+}
+
+let timer = null;
+async function refresh() {
+  let jobs;
+  try {
+    jobs = await (await fetch("/api/jobs")).json();
+  } catch {
+    timer = setTimeout(refresh, 5000);
+    return;
+  }
+  if (jobs.length) $("jobs").innerHTML = jobs.map(jobHtml).join("");
+  document.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", async () => {
+    b.disabled = true;
+    await fetch(`/api/jobs/${b.dataset.cancel}/cancel`, { method: "POST" });
+    refresh();
+  }));
+  clearTimeout(timer);
+  if (jobs.some((j) => j.status === "queued" || j.status === "running")) timer = setTimeout(refresh, 2000);
+}
+refresh();
+</script>
+</body>
+</html>

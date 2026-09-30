@@ -17,15 +17,16 @@ OUTPUT_DIR ?= workspace
 NUM_FRAMES ?=
 TEXTURES_DIR ?=
 PER_CLASS ?= 5
+PORT ?= 8000
 
 RUN := uv run python src/main.py --input-dir $(INPUT_DIR) --output-dir $(OUTPUT_DIR) \
 	$(if $(NUM_FRAMES),--num-frames $(NUM_FRAMES)) $(if $(TEXTURES_DIR),--textures-dir $(TEXTURES_DIR))
 
-.PHONY: help setup convert generate dataset train all preview clean
+.PHONY: help setup convert generate dataset train all preview ui clean
 
 help:
-	@echo Targets: setup convert generate dataset train all preview clean
-	@echo Vars: INPUT_DIR=$(INPUT_DIR) OUTPUT_DIR=$(OUTPUT_DIR) NUM_FRAMES=$(NUM_FRAMES) TEXTURES_DIR=$(TEXTURES_DIR) PER_CLASS=$(PER_CLASS)
+	@echo Targets: setup convert generate dataset train all preview ui clean
+	@echo Vars: INPUT_DIR=$(INPUT_DIR) OUTPUT_DIR=$(OUTPUT_DIR) NUM_FRAMES=$(NUM_FRAMES) TEXTURES_DIR=$(TEXTURES_DIR) PER_CLASS=$(PER_CLASS) PORT=$(PORT)
 
 setup:
 	uv sync
@@ -47,6 +48,9 @@ all:
 
 preview:
 	uv run python src/preview_dataset.py --output-dir $(OUTPUT_DIR) --per-class $(PER_CLASS)
+
+ui:
+	uv run python src/server.py --port $(PORT)
 
 clean:
 	uv run python -c "import shutil; shutil.rmtree(r'$(OUTPUT_DIR)', ignore_errors=True)"

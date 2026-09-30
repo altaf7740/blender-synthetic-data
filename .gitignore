@@ -1,5 +1,6 @@
 # Generated pipeline output - never commit large binaries/datasets
 workspace/
+jobs/
 
 # Pretrained weights Ultralytics downloads into the working directory
 # (yolo26n-seg.pt for training, weights/yolo26n.pt for its AMP check)

@@ -30,8 +30,9 @@ def split_for_index(i: int, total: int, val_split: float) -> str:
 
 def write_data_yaml(dst_dir: Path, class_names: list) -> Path:
     names_yaml = "\n".join(f"  {idx}: {name}" for idx, name in enumerate(class_names))
-    content = f"""path: {dst_dir}
-train: images/train
+    # No `path:` key - Ultralytics then resolves train/val against this file's
+    # own folder, so the dataset still works after it's moved or downloaded.
+    content = f"""train: images/train
 val: images/val
 names:
 {names_yaml}

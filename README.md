@@ -170,6 +170,31 @@ workspace/
 Pretrained weights are downloaded once into `~/.cache/synth-pipeline/`,
 outside the repo.
 
+### Web UI
+
+For a drag-and-drop version that anyone can use without the command line:
+
+```
+make ui                     # or: uv run python src/server.py --port 8000
+```
+
+Then open http://127.0.0.1:8000. Drop one STEP file per part, check the
+class names (taken from the file names, editable), pick how many images to
+render, and start. The page shows each stage's progress with a time
+estimate, then a labelled preview and a **Download dataset (.zip)** button.
+The zip holds the `yolo_seg_dataset/` folder; its `data.yaml` uses relative
+paths, so it trains from wherever it's unzipped.
+
+Jobs run one at a time in the order they're started, each in its own folder
+under `jobs/`, through the same stages as the command line. The job list is
+kept in memory, so restarting the server clears it (finished zips stay in
+`jobs/`). The server has no login: it listens on localhost by default, and
+should only be opened to a trusted network (`--host 0.0.0.0`).
+
+The downloaded dataset works for detection as well as segmentation:
+Ultralytics turns the outline labels into boxes when you train a detection
+model (`yolo26n.pt`) on it.
+
 ### Training on a GPU
 
 Ultralytics uses the first CUDA GPU on its own. On a Mac it picks the CPU,
