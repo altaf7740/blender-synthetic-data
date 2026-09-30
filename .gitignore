@@ -1,0 +1,20 @@
+# Generated pipeline output - never commit large binaries/datasets
+workspace/
+
+# Pretrained weights Ultralytics downloads into the working directory
+# (yolo26n-seg.pt for training, weights/yolo26n.pt for its AMP check)
+*.pt
+/weights/
+
+# Extracted/zipped CAD source that isn't the tracked reference file
+examples/**/*.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db

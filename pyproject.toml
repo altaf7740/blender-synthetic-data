@@ -1,0 +1,119 @@
+[project]
+name = "blender-synthetic-data"
+version = "0.1.0"
+description = "CAD (STEP) to instance-segmentation training data via Blender (bpy), plus YOLO26-seg training."
+# Pinned to the Python that the bpy wheel is built for (Blender 5.x = 3.13).
+requires-python = "==3.13.*"
+dependencies = [
+    "bpy>=5.0",  # Blender itself, as a Python module - no separate Blender install
+    "cascadio",  # OpenCascade STEP -> GLB, so Blender can import the parts
+    "numpy",
+    "pillow",
+    "opencv-python",
+    "tqdm",
+    "ultralytics",
+    "torch",
+    "torchvision",
+]
+
+# This repo is a set of top-level scripts + a synth_pipeline package imported
+# via src/ on sys.path, not a library meant to be built/distributed - tell uv
+# not to treat it as an installable package.
+[tool.uv]
+package = false
+
+# On Windows/Linux, torch/torchvision default to CPU-only wheels on PyPI,
+# which silently trains on CPU instead of the GPU. Route just those two to the
+# CUDA build there. macOS keeps the PyPI wheels, which use Apple GPUs (MPS).
+# `explicit = true` means this index is ONLY used for packages that opt in.
+[tool.uv.sources]
+torch = { index = "pytorch-cu128", marker = "sys_platform != 'darwin'" }
+torchvision = { index = "pytorch-cu128", marker = "sys_platform != 'darwin'" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+# ---- Pipeline settings (read by config.py) ----
+# Tool-specific config lives under [tool.*], same as [tool.uv] above.
+
+[tool.synth-pipeline.conversion]
+# STEP tessellation: max chord deviation, relative to each edge's length, so
+# mm and meter CAD tessellate equally finely.
+tolerance = 0.05
+
+[tool.synth-pipeline.rendering]
+num_frames = 2000
+resolution = [640, 640]
+seed = 42  # same seed + same inputs -> same dataset
+# Cycles path tracing, then denoised. More samples = less noise, slower.
+samples = 64
+# "auto" uses the first GPU backend found (OptiX, CUDA, HIP, Metal, oneAPI),
+# else the CPU. "cpu" forces the CPU.
+device = "auto"
+
+# Parts and clutter are dropped onto the surface and settle under physics each
+# frame, so they rest in natural poses instead of being placed at arbitrary
+# (often half-buried) orientations. Physics runs in units of R (see below)
+# with standard gravity; resting poses don't depend on scale.
+[tool.synth-pipeline.physics]
+settle_seconds = 2.5
+steps_per_second = 240
+# Collision shape of the parts: "CONVEX_HULL" (fast, stable; right for most
+# parts) or "MESH" (exact; for concave parts like brackets that rest inside
+# their hull, but slower and jitterier).
+part_collision_shape = "CONVEX_HULL"
+
+[tool.synth-pipeline.dataset]
+val_split = 0.15
+
+# Ranges are [min, max].
+#
+# Lengths are in multiples of R, the median bounding radius of your parts
+# (printed at the start of stage 2; ~5 mm for the example fasteners). So
+# these settings work unchanged for any part set - 3 mm electronics
+# components or 500 mm brackets - in any CAD unit.
+[tool.synth-pipeline.randomization]
+# Scene: each class appears 0-N times per frame (several screws of one kind
+# touching or overlapping, as in a real bin). Parts are dropped within
+# +/- spread of the center, in units of R x sqrt(number of parts dropped) so
+# crowding doesn't depend on how many classes you have. It is drawn per
+# frame: small values make piles with occlusion, large ones scattered layouts.
+instances_per_class = [0, 3]
+part_spread = [0.4, 1.9]
+empty_frame_probability = 0.03  # frames with no parts at all: teach the model to predict nothing
+
+# Camera: it frames one randomly picked part at a random apparent size, so
+# every class - including tiny ones - is seen from wide shots to close-ups.
+# The distance follows from that size and the lens. Elevation is the angle
+# above the ground: low angles see past the ground to the backdrop.
+camera_target_pixels = [50, 400]  # apparent size of the framed part's bounding sphere, px
+camera_focal_length = [18, 60]  # mm (36 mm-wide sensor): wide angle to short telephoto
+camera_elevation_deg = [20, 88]
+camera_frame_offset = 0.6  # framed part sits up to this fraction of the half-frame off-center
+
+# Unlabelled clutter (cubes, spheres, cylinders, cones) so the model learns to
+# ignore things that aren't parts. No tori: a torus the size of a nut looks
+# like one at a distance, and teaches the model to doubt real nuts.
+distractors_per_shape = 2
+distractor_size = [0.35, 2.4]  # R
+distractor_spread = 7  # R
+distractor_visible_probability = 0.4
+
+ground_size = 120  # R
+# Size of one texture repeat on the ground. Kept small so close-ups still
+# show crisp texture detail instead of a few magnified texels.
+ground_texture_tile = [2.4, 12]  # R
+
+# Light strengths are Blender units: world (backdrop) strength, point light
+# power in W, sun irradiance in W/m2. The scene is always ~R = 1 unit, so the
+# same values give the same exposure for any part size.
+world_strength = [0.3, 1.5]
+point_light_position = [[-18, -18, 6], [18, 18, 35]]  # R
+point_light_radius = 0.06  # R
+point_light_power = [2000, 25000]
+# Sun / strong overhead lamp: crisp shadows in some frames, off in others.
+sun_probability = 0.5
+sun_strength = [1, 5]
+sun_elevation_deg = [25, 85]
